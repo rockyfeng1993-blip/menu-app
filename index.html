@@ -139,6 +139,16 @@ body { font-family: 'Noto Serif SC', Georgia, serif; background: var(--cream); c
 .toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(45,21,32,.88); color:#fff; padding:10px 20px; border-radius:100px; font-size:13px; z-index:600; opacity:0; transition:opacity .25s,transform .25s; white-space:nowrap; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .link-text { color:var(--pink); text-decoration:underline; }
+/* Edit modal */
+.edit-overlay { position:fixed; inset:0; background:rgba(45,21,32,.5); z-index:400; display:none; align-items:flex-end; backdrop-filter:blur(4px); }
+.edit-overlay.show { display:flex; }
+.edit-sheet { background:var(--card); border-radius:28px 28px 0 0; width:100%; max-height:90vh; overflow-y:auto; animation:slideUp .3s cubic-bezier(.2,.8,.3,1); padding-bottom:env(safe-area-inset-bottom); }
+.drag-handle-icon { cursor:grab; font-size:18px; color:var(--border); padding:4px 6px; touch-action:none; flex-shrink:0; }
+.drag-handle-icon:active { cursor:grabbing; }
+.dish-admin-item.dragging { opacity:.4; }
+.dish-admin-item.drag-over { border-color:var(--pink); background:var(--pink-light); }
+.btn-edit { background:none; border:none; color:var(--pink); font-size:18px; cursor:pointer; padding:4px; flex-shrink:0; }
+
 </style>
 </head>
 <body>
@@ -291,6 +301,57 @@ body { font-family: 'Noto Serif SC', Georgia, serif; background: var(--cream); c
   <div class="overlay-title">已成功发送！</div>
   <div class="overlay-sub" id="successMsg">已自动通知他，等他来准备吧～<br><small style="opacity:.6">点击任意处关闭</small></div>
 </div>
+
+<!-- EDIT MODAL -->
+<div class="edit-overlay" id="editOverlay" onclick="closeEditIfOut(event)">
+  <div class="edit-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="modal-dish-name">编辑菜品</div>
+    </div>
+    <div style="padding:16px 20px 0">
+      <div class="form-row">
+        <label class="form-label">菜品名称</label>
+        <input type="text" class="form-input" id="editDishName" placeholder="菜品名称" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">图标</label>
+        <div class="emoji-row" id="editEmojiRow"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <label class="img-upload-label" style="flex:1">
+            <span>📷</span><span id="editUploadLabel">或上传图片</span>
+            <input type="file" accept="image/*" style="display:none" id="editImgInput" onchange="handleEditImgUpload(this)" />
+          </label>
+          <img id="editImgPreview" style="width:48px;height:48px;border-radius:10px;object-fit:cover;display:none" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">口味偏好选项</label>
+        <div class="pref-builder">
+          <input type="text" class="form-input" id="editPrefInput" placeholder="比如：免葱花" onkeydown="if(event.key==='Enter')addEditPref()" />
+          <button class="btn-sm btn-sm-pink" onclick="addEditPref()">添加</button>
+        </div>
+        <div class="existing-prefs" id="editPrefsList"></div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-soft)">快捷：
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">
+            <span class="quick-pref" onclick="quickAddEditPref('免葱花')">免葱花</span>
+            <span class="quick-pref" onclick="quickAddEditPref('免香菜')">免香菜</span>
+            <span class="quick-pref" onclick="quickAddEditPref('加辣')">加辣</span>
+            <span class="quick-pref" onclick="quickAddEditPref('少辣')">少辣</span>
+            <span class="quick-pref" onclick="quickAddEditPref('不辣')">不辣</span>
+            <span class="quick-pref" onclick="quickAddEditPref('少盐')">少盐</span>
+            <span class="quick-pref" onclick="quickAddEditPref('少油')">少油</span>
+            <span class="quick-pref" onclick="quickAddEditPref('加蒜')">加蒜</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEditModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveEditDish()">保存 ✓</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <style>
@@ -324,9 +385,11 @@ async function loadFromCloud() {
   if (_cd.length > 0) {
     dishes = _cd; orders = _co;
     renderMenu();
+    setSyncStatus('loading','同步中…');
+  } else {
+    setSyncStatus('loading','同步菜单中…');
   }
-  setSyncStatus('loading','同步菜单中…');
-  // 每次都强制从云端拉最新数据
+  // 每次都从云端拉最新，确保多设备同步
   try {
     const res = await fetch(BIN_URL+'/latest', { headers:{'X-Master-Key':MASTER_KEY} });
     const data = await res.json();
@@ -340,18 +403,13 @@ async function loadFromCloud() {
   } catch(e) {
     window._cloudLoaded = true;
     setSyncStatus('error','离线模式，显示本地缓存');
-    if (!dishes.length) {
-      dishes = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
-      orders = JSON.parse(localStorage.getItem('cached_orders')||'[]');
-      renderMenu();
-    }
   }
 }
 
 async function saveToCloud() {
   setSyncStatus('loading','保存中…');
   try {
-    // 先拉云端最新，把云端有但本地没有的菜合并，防止多设备互相覆盖
+    // 先拉云端最新，把云端有但本地没有的菜合并进来，防止多设备互相覆盖
     const cloudRes = await fetch(BIN_URL+'/latest', { headers:{'X-Master-Key':MASTER_KEY} });
     const cloudData = await cloudRes.json();
     const cloudDishes = cloudData.record?.dishes || [];
@@ -376,7 +434,7 @@ function showPage(p) {
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
   if (p==='admin') { renderAdmin(); renderOrders(); loadSendKeyUI(); }
-  if (p==='menu')  { loadFromCloud(); }  // 每次切回菜单都从云端同步
+  if (p==='menu')  { loadFromCloud(); }
 }
 
 function buildEmojiRow() {
@@ -559,9 +617,18 @@ async function submitOrder(){
 function renderAdmin(){
   const list=document.getElementById('dishListAdmin');
   if(!dishes.length){list.innerHTML=`<div class="empty-state"><span class="empty-emoji">🍽️</span><p>还没有菜，快去加吧！</p></div>`;return;}
-  list.innerHTML=dishes.map(d=>{
+  list.innerHTML=dishes.map((d,i)=>{
     const thumb=d.img?`<img src="${d.img}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`:d.emoji||'🍜';
-    return `<div class="dish-admin-item"><div class="dish-admin-thumb">${thumb}</div><div class="dish-admin-info"><div class="dish-admin-name">${d.name}</div><div class="dish-admin-prefs">${d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项'}</div></div><button class="btn-del" onclick="deleteDish('${d.id}')">🗑️</button></div>`;
+    return `<div class="dish-admin-item" id="admin-item-${d.id}" draggable="true" ondragstart="dragStart(event,'${d.id}')" ondragover="dragOver(event,'${d.id}')" ondrop="dragDrop(event,'${d.id}')" ondragend="dragEnd()">
+      <span class="drag-handle-icon">☰</span>
+      <div class="dish-admin-thumb">${thumb}</div>
+      <div class="dish-admin-info" style="flex:1;min-width:0">
+        <div class="dish-admin-name">${d.name}</div>
+        <div class="dish-admin-prefs">${d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项'}</div>
+      </div>
+      <button class="btn-edit" onclick="openEditModal('${d.id}')">✏️</button>
+      <button class="btn-del" onclick="deleteDish('${d.id}')">🗑️</button>
+    </div>`;
   }).join('');
 }
 function renderOrders(){
@@ -597,6 +664,120 @@ function showToast(msg){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
 }
 
+
+// ── Edit dish ──
+let editId = null, editPrefs = [], editPendingImg = null;
+const EMOJIS_EDIT = ['🍜','🍚','🍳','🥩','🐟','🍤','🍲','🥗','🍱','🥟','🍕','🌮','🥚','🫕','🥦','🍖'];
+
+function buildEditEmojiRow(selected) {
+  document.getElementById('editEmojiRow').innerHTML = EMOJIS_EDIT.map(e =>
+    `<span class="emoji-opt${e===selected?' selected':''}" onclick="selectEditEmoji(this)">${e}</span>`
+  ).join('');
+}
+function selectEditEmoji(el) {
+  document.querySelectorAll('#editEmojiRow .emoji-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  editPendingImg = null;
+  document.getElementById('editImgPreview').style.display='none';
+  document.getElementById('editUploadLabel').textContent='或上传图片';
+}
+function getEditEmoji() { return document.querySelector('#editEmojiRow .emoji-opt.selected')?.textContent||'🍜'; }
+
+function handleEditImgUpload(input) {
+  if(!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    editPendingImg = e.target.result;
+    const prev = document.getElementById('editImgPreview');
+    prev.src = editPendingImg; prev.style.display='block';
+    document.getElementById('editUploadLabel').textContent='已上传图片';
+    document.querySelectorAll('#editEmojiRow .emoji-opt').forEach(o=>o.classList.remove('selected'));
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function addEditPref() {
+  const inp=document.getElementById('editPrefInput'), val=inp.value.trim();
+  if(!val||editPrefs.includes(val)){inp.value='';return;}
+  editPrefs.push(val); renderEditPrefs(); inp.value='';
+}
+function quickAddEditPref(p){if(!editPrefs.includes(p)){editPrefs.push(p);renderEditPrefs();}}
+function removeEditPref(i){editPrefs.splice(i,1);renderEditPrefs();}
+function renderEditPrefs(){
+  document.getElementById('editPrefsList').innerHTML=editPrefs.map((p,i)=>
+    `<span class="pref-tag">${p}<span class="pref-tag-del" onclick="removeEditPref(${i})">×</span></span>`
+  ).join('');
+}
+
+function openEditModal(id) {
+  const d = dishes.find(x=>x.id===id);
+  if(!d) return;
+  editId = id;
+  editPrefs = [...(d.prefs||[])];
+  editPendingImg = d.img || null;
+  document.getElementById('editDishName').value = d.name;
+  buildEditEmojiRow(d.emoji||'🍜');
+  renderEditPrefs();
+  if (d.img) {
+    document.getElementById('editImgPreview').src = d.img;
+    document.getElementById('editImgPreview').style.display = 'block';
+    document.getElementById('editUploadLabel').textContent = '已上传图片';
+  } else {
+    document.getElementById('editImgPreview').style.display = 'none';
+    document.getElementById('editUploadLabel').textContent = '或上传图片';
+  }
+  document.getElementById('editImgInput').value = '';
+  document.getElementById('editOverlay').classList.add('show');
+}
+function closeEditModal() { document.getElementById('editOverlay').classList.remove('show'); }
+function closeEditIfOut(e) { if(e.target===e.currentTarget) closeEditModal(); }
+
+async function saveEditDish() {
+  const name = document.getElementById('editDishName').value.trim();
+  if(!name){showToast('请填写菜品名称');return;}
+  const idx = dishes.findIndex(x=>x.id===editId);
+  if(idx===-1) return;
+  dishes[idx] = { ...dishes[idx], name, emoji: getEditEmoji(), img: editPendingImg, prefs: [...editPrefs] };
+  closeEditModal();
+  await saveToCloud();
+  renderAdmin(); renderMenu();
+  showToast('✅ 已保存！');
+}
+
+// ── Drag to reorder ──
+let _dragId = null;
+function dragStart(e, id) {
+  _dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=>{ const el=document.getElementById('admin-item-'+id); if(el) el.classList.add('dragging'); }, 0);
+}
+function dragOver(e, id) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.dish-admin-item').forEach(el=>el.classList.remove('drag-over'));
+  if(id!==_dragId) {
+    const el=document.getElementById('admin-item-'+id);
+    if(el) el.classList.add('drag-over');
+  }
+}
+async function dragDrop(e, targetId) {
+  e.preventDefault();
+  if(!_dragId || _dragId===targetId) return;
+  const fromIdx = dishes.findIndex(d=>d.id===_dragId);
+  const toIdx = dishes.findIndex(d=>d.id===targetId);
+  if(fromIdx===-1||toIdx===-1) return;
+  const [moved] = dishes.splice(fromIdx, 1);
+  dishes.splice(toIdx, 0, moved);
+  renderAdmin();
+  await saveToCloud();
+  showToast('顺序已保存');
+}
+function dragEnd() {
+  _dragId = null;
+  document.querySelectorAll('.dish-admin-item').forEach(el=>{
+    el.classList.remove('dragging','drag-over');
+  });
+}
 buildEmojiRow();
 loadFromCloud();
 </script>
