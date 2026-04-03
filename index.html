@@ -326,9 +326,9 @@ async function loadFromCloud() {
     orders = data.record.orders || [];
     localStorage.setItem('cached_dishes', JSON.stringify(dishes));
     localStorage.setItem('cached_orders', JSON.stringify(orders));
-    setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
+    window._cloudLoaded=true; setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
   } catch(e) {
-    setSyncStatus('error','加载失败，显示本地缓存');
+    window._cloudLoaded=true; setSyncStatus('error','加载失败，显示本地缓存');
     dishes = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
     orders = JSON.parse(localStorage.getItem('cached_orders')||'[]');
   }
@@ -394,6 +394,7 @@ function renderBuildPrefs(){
 }
 
 async function addDish() {
+  if(!window._cloudLoaded){showToast('菜单同步中，请稍等…');return;}
   const name=document.getElementById('dishName').value.trim();
   if(!name){showToast('请填写菜品名称');return;}
   dishes.push({id:'d_'+Date.now(),name,emoji:getSelectedEmoji(),img:pendingImg,prefs:[...buildPrefs]});
