@@ -318,37 +318,40 @@ function setSyncStatus(state, msg) {
 }
 
 async function loadFromCloud() {
-  // 先显示本地缓存秒开
+  // 先显示本地缓存，避免白屏
   const _cd = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
   const _co = JSON.parse(localStorage.getItem('cached_orders')||'[]');
   if (_cd.length > 0) {
     dishes = _cd; orders = _co;
-    setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
     renderMenu();
-  } else {
-    setSyncStatus('loading','同步菜单中…');
   }
-  // 后台拉云端，只在本地没数据时才覆盖
+  setSyncStatus('loading','同步菜单中…');
+  // 每次都强制从云端拉最新数据
   try {
     const res = await fetch(BIN_URL+'/latest', { headers:{'X-Master-Key':MASTER_KEY} });
     const data = await res.json();
-    if (dishes.length === 0) {
-      dishes = data.record.dishes || [];
-      orders = data.record.orders || [];
-      localStorage.setItem('cached_dishes', JSON.stringify(dishes));
-      localStorage.setItem('cached_orders', JSON.stringify(orders));
+    dishes = data.record.dishes || [];
+    orders = data.record.orders || [];
+    localStorage.setItem('cached_dishes', JSON.stringify(dishes));
+    localStorage.setItem('cached_orders', JSON.stringify(orders));
+    window._cloudLoaded = true;
+    setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
+    renderMenu();
+  } catch(e) {
+    window._cloudLoaded = true;
+    setSyncStatus('error','离线模式，显示本地缓存');
+    if (!dishes.length) {
+      dishes = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
+      orders = JSON.parse(localStorage.getItem('cached_orders')||'[]');
       renderMenu();
     }
-    setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
-  } catch(e) {
-    setSyncStatus('error','离线模式');
   }
 }
 
 async function saveToCloud() {
   setSyncStatus('loading','保存中…');
   try {
-    // 先拉云端最新，合并云端有但本地没有的菜，防止多设备互相覆盖
+    // 先拉云端最新，把云端有但本地没有的菜合并，防止多设备互相覆盖
     const cloudRes = await fetch(BIN_URL+'/latest', { headers:{'X-Master-Key':MASTER_KEY} });
     const cloudData = await cloudRes.json();
     const cloudDishes = cloudData.record?.dishes || [];
@@ -359,6 +362,7 @@ async function saveToCloud() {
     localStorage.setItem('cached_dishes', JSON.stringify(dishes));
     localStorage.setItem('cached_orders', JSON.stringify(orders));
     await fetch(BIN_URL, { method:'PUT', headers:HEADERS, body:JSON.stringify({dishes,orders}) });
+    window._cloudLoaded = true;
     setSyncStatus('ok', `已保存 · ${dishes.length} 道菜`);
   } catch(e) {
     localStorage.setItem('cached_dishes', JSON.stringify(dishes));
@@ -372,10 +376,7 @@ function showPage(p) {
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
   if (p==='admin') { renderAdmin(); renderOrders(); loadSendKeyUI(); }
-  if (p==='menu')  {
-    if (dishes.length === 0) { loadFromCloud(); }
-    else { renderMenu(); }
-  }
+  if (p==='menu')  { loadFromCloud(); }  // 每次切回菜单都从云端同步
 }
 
 function buildEmojiRow() {
