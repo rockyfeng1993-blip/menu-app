@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天吃什么 🍜</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Ma+Shan+Zheng&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --pink: #FF6B9D; --pink-light: #FFE8F2; --pink-mid: #FFB3D1; --pink-dark: #D44F7A;
+  --cream: #FFF8F0; --text: #2D1520; --text-soft: #8A6070; --border: #F0C8D8;
+  --card: #FFFFFF; --green: #5BAD6F; --shadow-sm: 0 2px 8px rgba(255,107,157,.10); --r: 20px;
+}
+body { font-family: 'Noto Serif SC', Georgia, serif; background: var(--cream); color: var(--text); min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+
+.bottom-nav { position: fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); display:flex; z-index:200; padding-bottom:env(safe-area-inset-bottom); box-shadow:0 -4px 20px rgba(255,107,157,.12); }
+.nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 8px 8px; border:none; background:none; cursor:pointer; color:var(--text-soft); font-size:11px; font-family:inherit; transition:color .2s; gap:4px; }
+.nav-btn .nav-icon { font-size:22px; transition:transform .2s; }
+.nav-btn.active { color:var(--pink); }
+.nav-btn.active .nav-icon { transform:scale(1.15); }
+
+.page { display:none; padding:0 0 100px; min-height:100vh; }
+.page.active { display:block; }
+
+.page-hero { background:linear-gradient(135deg,#FF6B9D 0%,#FF9BBD 50%,#FFB3D1 100%); padding:40px 20px 28px; text-align:center; position:relative; overflow:hidden; }
+.page-hero::before { content:''; position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:rgba(255,255,255,.12); border-radius:50%; }
+.hero-emoji { font-size:44px; display:block; margin-bottom:8px; }
+.hero-title { font-family:'Ma Shan Zheng',cursive; font-size:28px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.1); }
+.hero-sub { font-size:13px; color:rgba(255,255,255,.85); margin-top:6px; }
+
+.sync-bar { display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:12px; color:var(--text-soft); background:var(--pink-light); }
+.sync-dot { width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.sync-dot.loading { background:#F0884A; animation:blink 1s infinite; }
+.sync-dot.error { background:#E05050; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px; }
+.dish-card { background:var(--card); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow-sm); border:1.5px solid var(--border); transition:transform .15s; position:relative; }
+.dish-card:active { transform:scale(.97); }
+.dish-card.selected { border-color:var(--pink); box-shadow:0 0 0 3px rgba(255,107,157,.2); }
+.dish-img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; }
+.dish-emoji-placeholder { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:52px; background:var(--pink-light); }
+.dish-info { padding:10px 10px 12px; }
+.dish-name { font-size:15px; font-weight:700; }
+.dish-prefs { font-size:11px; color:var(--text-soft); margin-top:3px; line-height:1.4; }
+.dish-qty-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+.qty-btn { width:28px; height:28px; border-radius:50%; border:none; cursor:pointer; font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; transition:transform .1s; }
+.qty-btn:active { transform:scale(.9); }
+.qty-minus { background:var(--border); color:var(--text-soft); }
+.qty-plus { background:var(--pink); color:#fff; }
+.qty-num { font-size:16px; font-weight:700; min-width:20px; text-align:center; }
+.badge-selected { position:absolute; top:8px; right:8px; background:var(--pink); color:#fff; border-radius:50%; width:22px; height:22px; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(45,21,32,.45); z-index:300; display:none; align-items:flex-end; backdrop-filter:blur(4px); }
+.modal-overlay.show { display:flex; }
+.modal-sheet { background:var(--card); border-radius:28px 28px 0 0; padding:0 0 env(safe-area-inset-bottom); width:100%; max-height:85vh; overflow-y:auto; animation:slideUp .3s cubic-bezier(.2,.8,.3,1); }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:12px auto 0; }
+.modal-header { padding:16px 20px 0; }
+.modal-dish-name { font-size:20px; font-weight:700; }
+.modal-section { padding:16px 20px 0; }
+.modal-section-title { font-size:13px; color:var(--text-soft); font-weight:700; margin-bottom:10px; }
+.pref-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.pref-chip { padding:7px 14px; border-radius:100px; border:1.5px solid var(--border); font-size:13px; cursor:pointer; font-family:inherit; background:#fff; color:var(--text); }
+.pref-chip.selected { background:var(--pink); border-color:var(--pink); color:#fff; }
+.modal-note textarea { width:100%; border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; font-size:14px; font-family:inherit; color:var(--text); background:var(--cream); resize:none; outline:none; }
+.modal-actions { display:flex; gap:10px; padding:20px; }
+.btn { flex:1; padding:14px; border-radius:100px; border:none; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
+.btn-outline { background:var(--pink-light); color:var(--pink-dark); }
+.btn-primary { background:var(--pink); color:#fff; box-shadow:0 4px 16px rgba(255,107,157,.4); }
+
+.cart-bar { position:fixed; bottom:70px; left:16px; right:16px; background:var(--text); color:#fff; border-radius:18px; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; z-index:190; box-shadow:0 8px 30px rgba(45,21,32,.35); transition:transform .3s cubic-bezier(.2,.8,.3,1),opacity .3s; }
+.cart-bar.hidden { transform:translateY(120%); opacity:0; pointer-events:none; }
+.cart-left { display:flex; align-items:center; gap:10px; }
+.cart-badge { background:var(--pink); color:#fff; border-radius:50%; width:26px; height:26px; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.cart-label { font-size:14px; font-weight:600; }
+.cart-items-preview { font-size:12px; opacity:.65; margin-top:2px; }
+.btn-checkout { background:var(--pink); color:#fff; border:none; border-radius:100px; padding:10px 20px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; }
+
+.confirm-list { padding:0 20px; }
+.confirm-item { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px; gap:10px; }
+.confirm-item:last-child { border-bottom:none; }
+.confirm-name { font-weight:600; flex:1; }
+.confirm-detail { font-size:12px; color:var(--text-soft); margin-top:3px; }
+.confirm-qty { color:var(--pink); font-weight:700; }
+.order-note-wrap { padding:0 20px; margin-top:4px; }
+.order-note-wrap textarea { width:100%; border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; font-size:14px; font-family:inherit; color:var(--text); background:var(--cream); resize:none; outline:none; }
+
+.full-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; z-index:500; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); }
+.full-overlay.show { display:flex; }
+.overlay-emoji { font-size:56px; animation:pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+.overlay-title { font-size:22px; font-weight:700; }
+.overlay-sub { font-size:14px; color:var(--text-soft); text-align:center; padding:0 30px; line-height:1.6; }
+
+.empty-state { text-align:center; padding:60px 30px; color:var(--text-soft); }
+.empty-emoji { font-size:52px; display:block; margin-bottom:12px; }
+
+.admin-hero { background:linear-gradient(135deg,#2D1520 0%,#4A2535 100%); padding:40px 20px 28px; text-align:center; }
+.admin-hero .hero-title { color:#fff; font-family:'Ma Shan Zheng',cursive; font-size:24px; }
+.admin-hero .hero-sub { color:rgba(255,255,255,.6); font-size:12px; }
+
+.config-card, .add-dish-card { margin:16px 16px 0; background:var(--card); border-radius:var(--r); padding:16px; border:1.5px solid var(--border); box-shadow:var(--shadow-sm); }
+.add-dish-card { margin-top:12px; }
+.config-title, .add-dish-title { font-size:14px; font-weight:700; margin-bottom:4px; }
+.config-desc { font-size:12px; color:var(--text-soft); margin-bottom:10px; line-height:1.5; }
+.config-row { display:flex; gap:8px; }
+.config-input, .form-input { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:10px 12px; font-size:13px; font-family:inherit; outline:none; color:var(--text); background:var(--cream); width:100%; }
+.config-status { font-size:12px; margin-top:8px; color:var(--green); min-height:16px; }
+.btn-sm { padding:10px 14px; border-radius:12px; border:none; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap; }
+.btn-sm-pink { background:var(--pink); color:#fff; }
+.btn-sm-outline { background:var(--pink-light); color:var(--pink-dark); }
+
+.form-row { margin-bottom:12px; }
+.form-label { font-size:12px; color:var(--text-soft); margin-bottom:5px; display:block; font-weight:600; }
+.emoji-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.emoji-opt { font-size:24px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1.5px solid var(--border); cursor:pointer; }
+.emoji-opt.selected { border-color:var(--pink); background:var(--pink-light); }
+.img-upload-label { display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--cream); border:1.5px dashed var(--border); border-radius:12px; cursor:pointer; font-size:13px; color:var(--text-soft); }
+.pref-builder { display:flex; gap:8px; }
+.existing-prefs { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.pref-tag { padding:5px 10px; background:var(--pink-light); border-radius:100px; font-size:12px; color:var(--pink-dark); display:flex; align-items:center; gap:5px; }
+.pref-tag-del { cursor:pointer; font-size:14px; font-weight:700; color:var(--pink); }
+.section-divider { font-size:13px; color:var(--text-soft); font-weight:700; padding:16px 16px 10px; text-transform:uppercase; }
+.dish-list-admin, .orders-list { margin:0 16px; display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.dish-admin-item { background:var(--card); border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; border:1.5px solid var(--border); }
+.dish-admin-thumb { width:52px; height:52px; border-radius:12px; flex-shrink:0; background:var(--pink-light); display:flex; align-items:center; justify-content:center; font-size:28px; overflow:hidden; }
+.dish-admin-thumb img { width:100%; height:100%; object-fit:cover; }
+.dish-admin-info { flex:1; }
+.dish-admin-name { font-size:15px; font-weight:700; }
+.dish-admin-prefs { font-size:12px; color:var(--text-soft); margin-top:2px; }
+.btn-del { background:none; border:none; color:#D44F7A; font-size:20px; cursor:pointer; }
+.order-card { background:var(--card); border-radius:16px; padding:14px; border:1.5px solid var(--border); }
+.order-time { font-size:12px; color:var(--text-soft); margin-bottom:8px; }
+.order-items { font-size:14px; line-height:1.7; }
+.order-note-display { font-size:12px; color:var(--text-soft); margin-top:6px; padding-top:6px; border-top:1px solid var(--border); }
+
+.toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(45,21,32,.88); color:#fff; padding:10px 20px; border-radius:100px; font-size:13px; z-index:600; opacity:0; transition:opacity .25s,transform .25s; white-space:nowrap; pointer-events:none; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.link-text { color:var(--pink); text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<!-- MENU PAGE -->
+<div class="page active" id="page-menu">
+  <div class="page-hero">
+    <span class="hero-emoji">🍜</span>
+    <div class="hero-title">今天吃什么</div>
+    <div class="hero-sub">选好你想要的，他来帮你做 🥰</div>
+  </div>
+  <div class="sync-bar" id="syncBar">
+    <div class="sync-dot loading" id="syncDot"></div>
+    <span id="syncText">加载菜单中…</span>
+  </div>
+  <div class="menu-grid" id="menuGrid"></div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div class="page" id="page-admin">
+  <div class="admin-hero">
+    <span class="hero-emoji" style="font-size:40px">👨‍🍳</span>
+    <div class="hero-title">后台管理</div>
+    <div class="hero-sub">只有你能看到这里</div>
+  </div>
+
+  <div class="config-card">
+    <div class="config-title">📲 微信推送（Server酱）</div>
+    <div class="config-desc">去 <a href="https://sct.ftqq.com" target="_blank" class="link-text">sct.ftqq.com</a> 微信扫码登录，复制 SendKey，女朋友点餐后你微信自动收到通知。</div>
+    <div class="config-row">
+      <input type="text" class="config-input" id="sendkeyInput" placeholder="粘贴 SCTxxxxx..." />
+      <button class="btn-sm btn-sm-pink" onclick="saveSendKey()">保存</button>
+      <button class="btn-sm btn-sm-outline" onclick="testPush()">测试</button>
+    </div>
+    <div class="config-status" id="sendkeyStatus"></div>
+  </div>
+
+  <div class="add-dish-card">
+    <div class="add-dish-title">➕ 添加菜品</div>
+    <div class="form-row">
+      <label class="form-label">菜品名称</label>
+      <input type="text" class="form-input" id="dishName" placeholder="比如：红烧肉、番茄炒蛋…" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">图标</label>
+      <div class="emoji-row" id="emojiRow"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <label class="img-upload-label" style="flex:1">
+          <span>📷</span><span id="uploadLabel">或上传图片</span>
+          <input type="file" accept="image/*" style="display:none" id="imgFileInput" onchange="handleImgUpload(this)" />
+        </label>
+        <img id="imgPreview" style="width:48px;height:48px;border-radius:10px;object-fit:cover;display:none" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">口味偏好选项</label>
+      <div class="pref-builder">
+        <input type="text" class="form-input" id="prefInput" placeholder="比如：免葱花" onkeydown="if(event.key==='Enter')addPref()" />
+        <button class="btn-sm btn-sm-pink" onclick="addPref()">添加</button>
+      </div>
+      <div class="existing-prefs" id="prefsList"></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-soft)">快捷：
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">
+          <span class="quick-pref" onclick="quickAddPref('免葱花')">免葱花</span>
+          <span class="quick-pref" onclick="quickAddPref('免香菜')">免香菜</span>
+          <span class="quick-pref" onclick="quickAddPref('加辣')">加辣</span>
+          <span class="quick-pref" onclick="quickAddPref('少辣')">少辣</span>
+          <span class="quick-pref" onclick="quickAddPref('不辣')">不辣</span>
+          <span class="quick-pref" onclick="quickAddPref('少盐')">少盐</span>
+          <span class="quick-pref" onclick="quickAddPref('少油')">少油</span>
+          <span class="quick-pref" onclick="quickAddPref('加蒜')">加蒜</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="addDish()">加入菜单 ☁️ 自动同步</button>
+  </div>
+
+  <div class="section-divider">当前菜单</div>
+  <div class="dish-list-admin" id="dishListAdmin"></div>
+  <div class="section-divider">历史点餐记录</div>
+  <div class="orders-list" id="ordersList"></div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('menu')" id="navMenu">
+    <span class="nav-icon">🍽️</span><span>菜单</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('admin')" id="navAdmin">
+    <span class="nav-icon">👨‍🍳</span><span>管理</span>
+  </button>
+</nav>
+
+<!-- PREFS MODAL -->
+<div class="modal-overlay" id="prefsOverlay" onclick="closePrefsIfOut(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-dish-name" id="modalDishName"></div></div>
+    <div class="modal-section" id="modalPrefsSection">
+      <div class="modal-section-title">口味偏好</div>
+      <div class="pref-chips" id="modalPrefChips"></div>
+    </div>
+    <div class="modal-section modal-note">
+      <div class="modal-section-title">备注</div>
+      <textarea id="modalNote" rows="2" placeholder="有什么特别要说的…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closePrefsModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmDishPref()">好了 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmOverlay" onclick="closeConfirmIfOut(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-dish-name">确认点菜单 🍽️</div></div>
+    <div style="height:12px"></div>
+    <div class="confirm-list" id="confirmList"></div>
+    <div class="order-note-wrap" style="margin-top:12px">
+      <div class="modal-section-title" style="margin-bottom:6px;font-size:12px;color:var(--text-soft);font-weight:700">整体备注</div>
+      <textarea id="overallNote" rows="2" placeholder="有什么额外要说的…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeConfirmModal()">再看看</button>
+      <button class="btn btn-primary" onclick="submitOrder()">提交点菜 💌</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART BAR -->
+<div class="cart-bar hidden" id="cartBar">
+  <div class="cart-left">
+    <div class="cart-badge" id="cartBadge">0</div>
+    <div>
+      <div class="cart-label">已选菜品</div>
+      <div class="cart-items-preview" id="cartPreview"></div>
+    </div>
+  </div>
+  <button class="btn-checkout" onclick="openConfirm()">去提交 →</button>
+</div>
+
+<div class="full-overlay" id="sendingOverlay">
+  <div class="overlay-emoji">💌</div>
+  <div class="overlay-title">正在通知他…</div>
+</div>
+<div class="full-overlay" id="successOverlay" onclick="this.classList.remove('show')">
+  <div class="overlay-emoji">🎉</div>
+  <div class="overlay-title">已成功发送！</div>
+  <div class="overlay-sub" id="successMsg">已自动通知他，等他来准备吧～<br><small style="opacity:.6">点击任意处关闭</small></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<style>
+.quick-pref { font-size:12px; padding:4px 9px; border:1px solid var(--border); border-radius:100px; cursor:pointer; color:var(--text-soft); }
+</style>
+
+<script>
+const BIN_ID     = '69cf536236566621a8755e35';
+const MASTER_KEY = '$2a$10$VFkj5Dl8SWCh9n16NClmyO49tS9P54oTS3CZ5rYXIjK7OvvKHoa9W';
+const BIN_URL    = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const HEADERS    = { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY };
+
+let dishes = [], orders = [], cart = {};
+let currentDishId = null, currentPrefs = [], pendingImg = null, buildPrefs = [];
+const K_SK = 'mymenu_sendkey';
+const getSK = () => localStorage.getItem(K_SK) || 'SCT333500TNOeqvOwysfdYCven8FfOM6Sb';
+const saveSKL = k => localStorage.setItem(K_SK, k);
+
+const EMOJIS = ['🍜','🍚','🍳','🥩','🐟','🍤','🍲','🥗','🍱','🥟','🍕','🌮','🥚','🫕','🥦','🍖'];
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('syncDot'), text = document.getElementById('syncText');
+  dot.className = 'sync-dot' + (state==='loading'?' loading':state==='error'?' error':'');
+  text.textContent = msg;
+}
+
+async function loadFromCloud() {
+  setSyncStatus('loading','同步菜单中…');
+  try {
+    const res = await fetch(BIN_URL+'/latest', { headers:{'X-Master-Key':MASTER_KEY} });
+    const data = await res.json();
+    dishes = data.record.dishes || [];
+    orders = data.record.orders || [];
+    localStorage.setItem('cached_dishes', JSON.stringify(dishes));
+    localStorage.setItem('cached_orders', JSON.stringify(orders));
+    setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
+  } catch(e) {
+    setSyncStatus('error','加载失败，显示本地缓存');
+    dishes = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
+    orders = JSON.parse(localStorage.getItem('cached_orders')||'[]');
+  }
+  renderMenu();
+}
+
+async function saveToCloud() {
+  localStorage.setItem('cached_dishes', JSON.stringify(dishes));
+  localStorage.setItem('cached_orders', JSON.stringify(orders));
+  setSyncStatus('loading','保存中…');
+  try {
+    await fetch(BIN_URL, { method:'PUT', headers:HEADERS, body:JSON.stringify({dishes,orders}) });
+    setSyncStatus('ok', `已保存 · ${dishes.length} 道菜`);
+  } catch(e) { setSyncStatus('error','云端保存失败，已存本地'); }
+}
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
+  if (p==='admin') { renderAdmin(); renderOrders(); loadSendKeyUI(); }
+  if (p==='menu')  { loadFromCloud(); }
+}
+
+function buildEmojiRow() {
+  document.getElementById('emojiRow').innerHTML = EMOJIS.map((e,i)=>
+    `<span class="emoji-opt${i===0?' selected':''}" onclick="selectEmoji(this)">${e}</span>`
+  ).join('');
+}
+function selectEmoji(el) {
+  document.querySelectorAll('.emoji-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected'); pendingImg=null;
+  document.getElementById('imgPreview').style.display='none';
+  document.getElementById('uploadLabel').textContent='或上传图片';
+}
+function getSelectedEmoji() { return document.querySelector('.emoji-opt.selected')?.textContent||'🍜'; }
+
+function handleImgUpload(input) {
+  if(!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingImg = e.target.result;
+    const prev = document.getElementById('imgPreview');
+    prev.src=pendingImg; prev.style.display='block';
+    document.getElementById('uploadLabel').textContent='已上传图片';
+    document.querySelectorAll('.emoji-opt').forEach(o=>o.classList.remove('selected'));
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function addPref() {
+  const inp=document.getElementById('prefInput'), val=inp.value.trim();
+  if(!val||buildPrefs.includes(val)){inp.value='';return;}
+  buildPrefs.push(val); renderBuildPrefs(); inp.value='';
+}
+function quickAddPref(p){if(!buildPrefs.includes(p)){buildPrefs.push(p);renderBuildPrefs();}}
+function removeBuildPref(i){buildPrefs.splice(i,1);renderBuildPrefs();}
+function renderBuildPrefs(){
+  document.getElementById('prefsList').innerHTML=buildPrefs.map((p,i)=>
+    `<span class="pref-tag">${p}<span class="pref-tag-del" onclick="removeBuildPref(${i})">×</span></span>`
+  ).join('');
+}
+
+async function addDish() {
+  const name=document.getElementById('dishName').value.trim();
+  if(!name){showToast('请填写菜品名称');return;}
+  dishes.push({id:'d_'+Date.now(),name,emoji:getSelectedEmoji(),img:pendingImg,prefs:[...buildPrefs]});
+  await saveToCloud();
+  document.getElementById('dishName').value='';
+  document.getElementById('imgPreview').style.display='none';
+  document.getElementById('uploadLabel').textContent='或上传图片';
+  document.getElementById('imgFileInput').value='';
+  buildPrefs=[]; renderBuildPrefs(); pendingImg=null;
+  buildEmojiRow(); renderAdmin(); showToast('✅ 已添加并同步到云端！');
+}
+
+async function deleteDish(id) {
+  dishes=dishes.filter(d=>d.id!==id); delete cart[id];
+  await saveToCloud(); renderAdmin(); renderMenu(); updateCartBar(); showToast('已删除');
+}
+
+function renderMenu() {
+  const grid=document.getElementById('menuGrid');
+  if(!dishes.length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><span class="empty-emoji">🍳</span><p>菜单还是空的哦<br>等他去后台加菜吧～</p></div>`;
+    return;
+  }
+  grid.innerHTML=dishes.map(d=>{
+    const c=cart[d.id], qty=c?c.qty:0;
+    const imgHtml=d.img?`<img class="dish-img" src="${d.img}" alt="${d.name}">`:`<div class="dish-emoji-placeholder">${d.emoji||'🍜'}</div>`;
+    return `<div class="dish-card${qty>0?' selected':''}" id="card-${d.id}">
+      ${qty>0?`<div class="badge-selected">${qty}</div>`:''}
+      <div onclick="openPrefsModal('${d.id}')" style="cursor:pointer">${imgHtml}
+        <div class="dish-info"><div class="dish-name">${d.name}</div>${d.prefs&&d.prefs.length?`<div class="dish-prefs">${d.prefs.join(' · ')}</div>`:''}</div>
+      </div>
+      <div class="dish-info" style="padding-top:0">
+        <div class="dish-qty-row">
+          <button class="qty-btn qty-minus" onclick="changeQty('${d.id}',-1)" ${qty===0?'style="opacity:.4"':''}>−</button>
+          <span class="qty-num">${qty}</span>
+          <button class="qty-btn qty-plus" onclick="changeQty('${d.id}',1)">+</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function changeQty(id,delta){
+  const c=cart[id]||{qty:0,prefs:[],note:''};
+  const newQty=Math.max(0,c.qty+delta);
+  if(newQty===0){delete cart[id];}
+  else{cart[id]={...c,qty:newQty};if(delta>0&&!c.qty)openPrefsModal(id);}
+  renderMenu();updateCartBar();
+}
+
+function openPrefsModal(id){
+  const d=dishes.find(x=>x.id===id);if(!d)return;
+  currentDishId=id;
+  const c=cart[id]||{qty:0,prefs:[],note:''};
+  currentPrefs=[...(c.prefs||[])];
+  document.getElementById('modalDishName').textContent=d.name;
+  const sec=document.getElementById('modalPrefsSection');
+  if(d.prefs&&d.prefs.length){
+    sec.style.display='block';
+    document.getElementById('modalPrefChips').innerHTML=d.prefs.map(p=>
+      `<button class="pref-chip${currentPrefs.includes(p)?' selected':''}" onclick="togglePref(this,'${p}')">${p}</button>`
+    ).join('');
+  } else {sec.style.display='none';}
+  document.getElementById('modalNote').value=c.note||'';
+  document.getElementById('prefsOverlay').classList.add('show');
+}
+function togglePref(el,p){
+  el.classList.toggle('selected');
+  if(currentPrefs.includes(p))currentPrefs=currentPrefs.filter(x=>x!==p);
+  else currentPrefs.push(p);
+}
+function confirmDishPref(){
+  const note=document.getElementById('modalNote').value.trim();
+  const c=cart[currentDishId]||{qty:0};
+  cart[currentDishId]={qty:Math.max(1,c.qty),prefs:currentPrefs,note};
+  closePrefsModal();renderMenu();updateCartBar();
+}
+function closePrefsModal(){document.getElementById('prefsOverlay').classList.remove('show');}
+function closePrefsIfOut(e){if(e.target===e.currentTarget)closePrefsModal();}
+
+function updateCartBar(){
+  const bar=document.getElementById('cartBar'),badge=document.getElementById('cartBadge'),prev=document.getElementById('cartPreview');
+  const items=Object.entries(cart).filter(([,v])=>v.qty>0);
+  if(!items.length){bar.classList.add('hidden');return;}
+  bar.classList.remove('hidden');
+  badge.textContent=items.reduce((s,[,v])=>s+v.qty,0);
+  prev.textContent=items.map(([id,v])=>{const d=dishes.find(x=>x.id===id);return d?`${d.name}×${v.qty}`:''}).filter(Boolean).slice(0,2).join('、');
+}
+
+function openConfirm(){
+  const items=Object.entries(cart).filter(([,v])=>v.qty>0);if(!items.length)return;
+  document.getElementById('confirmList').innerHTML=items.map(([id,v])=>{
+    const d=dishes.find(x=>x.id===id);if(!d)return'';
+    const detail=[v.prefs&&v.prefs.length?v.prefs.join('、'):'',v.note?`备注：${v.note}`:''].filter(Boolean).join('；');
+    return `<div class="confirm-item"><div><div class="confirm-name">${d.name}</div>${detail?`<div class="confirm-detail">${detail}</div>`:''}</div><div class="confirm-qty">×${v.qty}</div></div>`;
+  }).join('');
+  document.getElementById('overallNote').value='';
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirmModal(){document.getElementById('confirmOverlay').classList.remove('show');}
+function closeConfirmIfOut(e){if(e.target===e.currentTarget)closeConfirmModal();}
+
+async function submitOrder(){
+  const items=Object.entries(cart).filter(([,v])=>v.qty>0);if(!items.length)return;
+  const overallNote=document.getElementById('overallNote').value.trim();
+  const now=new Date();
+  const timeStr=now.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const lines=items.map(([id,v])=>{
+    const d=dishes.find(x=>x.id===id);if(!d)return'';
+    let s=`• ${d.name} ×${v.qty}`;
+    if(v.prefs&&v.prefs.length)s+=`（${v.prefs.join('、')}）`;
+    if(v.note)s+=` 备注：${v.note}`;
+    return s;
+  }).filter(Boolean);
+  if(overallNote)lines.push(`\n备注：${overallNote}`);
+  const msgBody=`🍽️ 点菜单\n${timeStr}\n\n${lines.join('\n')}`;
+
+  orders.unshift({time:now.toISOString(),items:items.map(([id,v])=>{const d=dishes.find(x=>x.id===id);return{name:d?d.name:id,qty:v.qty,prefs:v.prefs,note:v.note};}),note:overallNote});
+  orders=orders.slice(0,50);
+  saveToCloud();
+  closeConfirmModal();
+
+  const sendKey=getSK();
+  if(!sendKey){showToast('点菜已记录！（未配置推送）');cart={};renderMenu();updateCartBar();return;}
+
+  document.getElementById('sendingOverlay').classList.add('show');
+  try {
+    await fetch(`https://sctapi.ftqq.com/${sendKey}.send`,{
+      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`title=🍽️+女朋友点菜啦！&desp=${encodeURIComponent(msgBody)}`
+    });
+  } catch(e){}
+  document.getElementById('sendingOverlay').classList.remove('show');
+  document.getElementById('successOverlay').classList.add('show');
+  cart={};renderMenu();updateCartBar();
+}
+
+function renderAdmin(){
+  const list=document.getElementById('dishListAdmin');
+  if(!dishes.length){list.innerHTML=`<div class="empty-state"><span class="empty-emoji">🍽️</span><p>还没有菜，快去加吧！</p></div>`;return;}
+  list.innerHTML=dishes.map(d=>{
+    const thumb=d.img?`<img src="${d.img}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`:d.emoji||'🍜';
+    return `<div class="dish-admin-item"><div class="dish-admin-thumb">${thumb}</div><div class="dish-admin-info"><div class="dish-admin-name">${d.name}</div><div class="dish-admin-prefs">${d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项'}</div></div><button class="btn-del" onclick="deleteDish('${d.id}')">🗑️</button></div>`;
+  }).join('');
+}
+function renderOrders(){
+  const list=document.getElementById('ordersList');
+  if(!orders.length){list.innerHTML=`<div class="empty-state" style="padding:30px"><span class="empty-emoji" style="font-size:36px">📋</span><p>还没有点菜记录</p></div>`;return;}
+  list.innerHTML=orders.map(o=>{
+    const t=new Date(o.time).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const itemLines=o.items.map(i=>{let s=`${i.name} ×${i.qty}`;if(i.prefs&&i.prefs.length)s+=`（${i.prefs.join('、')}）`;if(i.note)s+=` · ${i.note}`;return s;}).join('<br>');
+    return `<div class="order-card"><div class="order-time">${t}</div><div class="order-items">${itemLines}</div>${o.note?`<div class="order-note-display">备注：${o.note}</div>`:''}</div>`;
+  }).join('');
+}
+
+function loadSendKeyUI(){
+  const k=getSK();document.getElementById('sendkeyInput').value=k;
+  if(k)document.getElementById('sendkeyStatus').textContent='✅ 已配置';
+}
+function saveSendKey(){
+  const k=document.getElementById('sendkeyInput').value.trim();saveSKL(k);
+  document.getElementById('sendkeyStatus').textContent=k?'✅ 已保存':'已清除';
+}
+async function testPush(){
+  const k=getSK();if(!k){showToast('请先保存 SendKey');return;}
+  document.getElementById('sendkeyStatus').textContent='发送中…';
+  try{
+    await fetch(`https://sctapi.ftqq.com/${k}.send`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`title=🔔+点菜系统测试&desp=推送成功！女朋友点菜你就能收到啦 🎉`});
+    document.getElementById('sendkeyStatus').textContent='✅ 已发送，检查你的微信';
+  }catch(e){document.getElementById('sendkeyStatus').textContent='❌ 发送失败';}
+}
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+buildEmojiRow();
+loadFromCloud();
+</script>
+</body>
+</html>
