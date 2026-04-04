@@ -389,12 +389,10 @@ async function loadFromCloud() {
     const data = await res.json();
     const cloudDishes = data.record.dishes || [];
     const cloudOrders = data.record.orders || [];
-    // 只有当前内存为空时才用云端数据，防止覆盖刚保存的数据
     if (dishes.length === 0) {
       dishes = cloudDishes;
       orders = cloudOrders;
     } else {
-      // 已有本地数据，只将云端有但本地没有的菜合并进来
       const localIds = new Set(dishes.map(d => d.id));
       for (const cd of cloudDishes) {
         if (!localIds.has(cd.id)) dishes.push(cd);
@@ -417,11 +415,8 @@ async function loadFromCloud() {
 }
 
 async function saveToCloud() {
-  // 版本保护：旧版本代码没有 APP_VERSION 常量，直接返回
-  if (typeof APP_VERSION === 'undefined') { setSyncStatus('error','请刷新页面'); return; }
   setSyncStatus('loading','保存中…');
   try {
-    // 先拉云端最新，把云端有但本地没有的菜合并进来，防止多设备覆盖
     const cloudRes = await fetch(BIN_URL+'/latest', {headers:{'X-Master-Key':MASTER_KEY}});
     const cloudData = await cloudRes.json();
     const cloudDishes = cloudData.record?.dishes || [];
@@ -429,66 +424,16 @@ async function saveToCloud() {
     for (const cd of cloudDishes) {
       if (!localIds.has(cd.id)) dishes.push(cd);
     }
-    window._cloudLoaded = true;
     localStorage.setItem('cached_dishes', JSON.stringify(dishes));
     localStorage.setItem('cached_orders', JSON.stringify(orders));
-    await fetch(BIN_URL, { method:'PUT', headers:HEADERS, body:JSON.stringify({dishes,orders}) });
+    const putRes = await fetch(BIN_URL, {method:'PUT', headers:HEADERS, body:JSON.stringify({dishes,orders})});
+    if (!putRes.ok) throw new Error('PUT failed');
+    window._cloudLoaded = true;
     setSyncStatus('ok', `已保存 · ${dishes.length} 道菜`);
   } catch(e) {
     localStorage.setItem('cached_dishes', JSON.stringify(dishes));
-    setSyncStatus('error','云端保存失败，已存本地');
+    setSyncStatus('error','保存失败，已存本地');
   }
-}
-
-function showPage(p) {
-  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');
-  document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
-  if (p==='admin') { renderAdmin(); renderOrders(); loadSendKeyUI(); }
-  if (p==='menu')  {
-    if (window._cloudLoaded) { renderMenu(); }
-    else { loadFromCloud(); }
-  }
-}
-
-function buildEmojiRow() {
-  document.getElementById('emojiRow').innerHTML = EMOJIS.map((e,i)=>
-    `<span class="emoji-opt${i===0?' selected':''}" onclick="selectEmoji(this)">${e}</span>`
-  ).join('');
-}
-function selectEmoji(el) {
-  document.querySelectorAll('.emoji-opt').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected'); pendingImg=null;
-  document.getElementById('imgPreview').style.display='none';
-  document.getElementById('uploadLabel').textContent='或上传图片';
-}
-function getSelectedEmoji() { return document.querySelector('.emoji-opt.selected')?.textContent||'🍜'; }
-
-function handleImgUpload(input) {
-  if(!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    pendingImg = e.target.result;
-    const prev = document.getElementById('imgPreview');
-    prev.src=pendingImg; prev.style.display='block';
-    document.getElementById('uploadLabel').textContent='已上传图片';
-    document.querySelectorAll('.emoji-opt').forEach(o=>o.classList.remove('selected'));
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function addPref() {
-  const inp=document.getElementById('prefInput'), val=inp.value.trim();
-  if(!val||buildPrefs.includes(val)){inp.value='';return;}
-  buildPrefs.push(val); renderBuildPrefs(); inp.value='';
-}
-function quickAddPref(p){if(!buildPrefs.includes(p)){buildPrefs.push(p);renderBuildPrefs();}}
-function removeBuildPref(i){buildPrefs.splice(i,1);renderBuildPrefs();}
-function renderBuildPrefs(){
-  document.getElementById('prefsList').innerHTML=buildPrefs.map((p,i)=>
-    `<span class="pref-tag">${p}<span class="pref-tag-del" onclick="removeBuildPref(${i})">×</span></span>`
-  ).join('');
 }
 
 async function addDish() {
