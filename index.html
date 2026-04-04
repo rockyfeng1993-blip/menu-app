@@ -404,6 +404,8 @@ async function loadFromCloud() {
 }
 
 async function saveToCloud() {
+  // 版本保护：旧版本代码没有 APP_VERSION 常量，直接返回
+  if (typeof APP_VERSION === 'undefined') { setSyncStatus('error','请刷新页面'); return; }
   setSyncStatus('loading','保存中…');
   try {
     // 先拉云端最新，把云端有但本地没有的菜合并进来，防止多设备覆盖
