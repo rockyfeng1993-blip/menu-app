@@ -379,9 +379,10 @@ function setSyncStatus(state, msg) {
 }
 
 async function loadFromCloud() {
+  window._cloudLoaded = false;
   setSyncStatus('loading','同步中…');
   try {
-    const res = await fetch(BIN_URL+'/latest', { headers:{'X-Master-Key':MASTER_KEY} });
+    const res = await fetch(BIN_URL+'/latest', {headers:{'X-Master-Key':MASTER_KEY}});
     const data = await res.json();
     dishes = data.record.dishes || [];
     orders = data.record.orders || [];
@@ -389,13 +390,14 @@ async function loadFromCloud() {
     localStorage.setItem('cached_orders', JSON.stringify(orders));
     window._cloudLoaded = true;
     setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
+    renderMenu();
   } catch(e) {
     dishes = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
     orders = JSON.parse(localStorage.getItem('cached_orders')||'[]');
     window._cloudLoaded = true;
     setSyncStatus('error','离线模式');
+    renderMenu();
   }
-  renderMenu();
 }
 
 async function saveToCloud() {
@@ -426,7 +428,10 @@ function showPage(p) {
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
   if (p==='admin') { renderAdmin(); renderOrders(); loadSendKeyUI(); }
-  if (p==='menu')  { loadFromCloud(); }
+  if (p==='menu')  {
+    if (window._cloudLoaded) { renderMenu(); }
+    else { loadFromCloud(); }
+  }
 }
 
 function buildEmojiRow() {
