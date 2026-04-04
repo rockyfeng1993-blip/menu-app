@@ -381,6 +381,17 @@ function setSyncStatus(state, msg) {
   text.textContent = msg;
 }
 
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+  document.getElementById('page-' + p).style.display = 'block';
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  const btn = p === 'menu' ? document.getElementById('navMenu') : document.getElementById('navAdmin');
+  if (btn) btn.classList.add('active');
+  if (p === 'menu') {
+    if (window._cloudLoaded) { renderMenu(); } else { loadFromCloud(); }
+  }
+}
+
 async function loadFromCloud() {
   window._cloudLoaded = false;
   setSyncStatus('loading','同步中…');
