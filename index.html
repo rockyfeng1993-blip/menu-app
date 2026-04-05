@@ -374,6 +374,19 @@ const getSK = () => localStorage.getItem(K_SK) || 'SCT333500TNOeqvOwysfdYCven8Ff
 const saveSKL = k => localStorage.setItem(K_SK, k);
 
 const EMOJIS = ['🍜','🍚','🍳','🥩','🐟','🍤','🍲','🥗','🍱','🥟','🍕','🌮','🥚','🫕','🥦','🍖'];
+function buildEmojiRow(sel) {
+  document.getElementById('emojiRow').innerHTML = EMOJIS.map(e =>
+    `<span class="emoji-opt${e===sel?' selected':''}" onclick="selectEmoji(this)">${e}</span>`
+  ).join('');
+}
+function selectEmoji(el) {
+  document.querySelectorAll('#emojiRow .emoji-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function getSelectedEmoji() {
+  return document.querySelector('#emojiRow .emoji-opt.selected')?.textContent || '🍜';
+}
+
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('syncDot'), text = document.getElementById('syncText');
