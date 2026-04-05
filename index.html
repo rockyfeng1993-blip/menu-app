@@ -379,24 +379,6 @@ function buildEmojiRow(sel) {
     `<span class="emoji-opt${e===sel?' selected':''}" onclick="selectEmoji(this)">${e}</span>`
   ).join('');
 }
-let pendingImg = null;
-
-function handleImgUpload(input) {
-  if (!input.files || !input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    pendingImg = e.target.result;
-    const preview = document.getElementById('imgPreview');
-    if (preview) { preview.src = pendingImg; preview.style.display = 'block'; }
-    const label = document.getElementById('uploadLabel');
-    if (label) label.textContent = '已上传图片';
-    // 取消 emoji 选中
-    document.querySelectorAll('#emojiRow .emoji-opt').forEach(o => o.classList.remove('selected'));
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-
 function selectEmoji(el) {
   document.querySelectorAll('#emojiRow .emoji-opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
@@ -466,6 +448,53 @@ async function saveToCloud() {
     setSyncStatus('error', '保存失败，已存本地');
   }
 }
+
+let pendingImg = null;
+let buildingPrefs = [];
+
+function handleImgUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    window.pendingImg = e.target.result;
+    const preview = document.getElementById('imgPreview');
+    if (preview) { preview.src = window.pendingImg; preview.style.display = 'block'; }
+    const label = document.getElementById('uploadLabel');
+    if (label) label.textContent = '已上传图片';
+    document.querySelectorAll('#emojiRow .emoji-opt').forEach(o => o.classList.remove('selected'));
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function renderBuildPrefs() {
+  const el = document.getElementById('buildPrefsList');
+  if (!el) return;
+  el.innerHTML = buildingPrefs.map((p, i) =>
+    `<span class="pref-tag">${p}<span class="pref-tag-del" onclick="buildingPrefs.splice(${i},1);renderBuildPrefs()">&times;</span></span>`
+  ).join('');
+}
+
+function addPref() {
+  const inp = document.getElementById('prefInput');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val || buildingPrefs.includes(val)) { inp.value = ''; return; }
+  buildingPrefs.push(val);
+  renderBuildPrefs();
+  inp.value = '';
+}
+
+function quickAddPref(p) {
+  if (!buildingPrefs.includes(p)) { buildingPrefs.push(p); renderBuildPrefs(); }
+}
+
+function saveSKL() {
+  const inp = document.getElementById('skInput');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (val) { localStorage.setItem(K_SK, val); showToast('已保存 SendKey ✅'); }
+}
+
 
 async function addDish() {
   const name=document.getElementById('dishName').value.trim();
