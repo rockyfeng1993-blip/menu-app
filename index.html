@@ -473,9 +473,11 @@ async function addDish() {
   buildEmojiRow(); renderAdmin(); showToast('✅ 已添加并同步到云端！');
 }
 
-async function deleteDish(id) {
-  dishes=dishes.filter(d=>d.id!==id); delete cart[id];
-  await saveToCloud(); renderAdmin(); renderMenu(); updateCartBar(); showToast('已删除');
+async async function deleteDish(id) {
+  dishes = dishes.filter(d => d.id !== id);
+  renderAdmin();
+  renderMenu();
+  await saveToCloud();
 }
 
 function renderMenu() {
