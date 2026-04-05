@@ -407,56 +407,45 @@ function showPage(p) {
 
 async function loadFromCloud() {
   window._cloudLoaded = false;
-  setSyncStatus('loading','同步中…');
+  // 先用本地缓存快速显示
+  const cached = JSON.parse(localStorage.getItem('cached_dishes') || '[]');
+  if (cached.length > 0) {
+    dishes = cached;
+    orders = JSON.parse(localStorage.getItem('cached_orders') || '[]');
+    renderMenu();
+    setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
+  } else {
+    setSyncStatus('loading', '同步中…');
+  }
+  // 后台拉云端最新
   try {
-    const res = await fetch(BIN_URL+'/latest', {headers:{'X-Master-Key':MASTER_KEY}});
+    const res = await fetch(BIN_URL+'/latest', {headers: {'X-Master-Key': MASTER_KEY}});
     const data = await res.json();
-    const cloudDishes = data.record.dishes || [];
-    const cloudOrders = data.record.orders || [];
-    if (dishes.length === 0) {
-      dishes = cloudDishes;
-      orders = cloudOrders;
-    } else {
-      const localIds = new Set(dishes.map(d => d.id));
-      for (const cd of cloudDishes) {
-        if (!localIds.has(cd.id)) dishes.push(cd);
-      }
-    }
+    dishes = data.record.dishes || [];
+    orders = data.record.orders || [];
     localStorage.setItem('cached_dishes', JSON.stringify(dishes));
     localStorage.setItem('cached_orders', JSON.stringify(orders));
     window._cloudLoaded = true;
     setSyncStatus('ok', `菜单已同步 · ${dishes.length} 道菜`);
     renderMenu();
   } catch(e) {
-    if (dishes.length === 0) {
-      dishes = JSON.parse(localStorage.getItem('cached_dishes')||'[]');
-      orders = JSON.parse(localStorage.getItem('cached_orders')||'[]');
-    }
     window._cloudLoaded = true;
-    setSyncStatus('error','离线模式');
-    renderMenu();
+    setSyncStatus('error', '离线模式');
+    if (dishes.length === 0) renderMenu();
   }
 }
 
 async function saveToCloud() {
-  setSyncStatus('loading','保存中…');
+  localStorage.setItem('cached_dishes', JSON.stringify(dishes));
+  localStorage.setItem('cached_orders', JSON.stringify(orders));
+  setSyncStatus('loading', '保存中…');
   try {
-    const cloudRes = await fetch(BIN_URL+'/latest', {headers:{'X-Master-Key':MASTER_KEY}});
-    const cloudData = await cloudRes.json();
-    const cloudDishes = cloudData.record?.dishes || [];
-    const localIds = new Set(dishes.map(d => d.id));
-    for (const cd of cloudDishes) {
-      if (!localIds.has(cd.id)) dishes.push(cd);
-    }
-    localStorage.setItem('cached_dishes', JSON.stringify(dishes));
-    localStorage.setItem('cached_orders', JSON.stringify(orders));
-    const putRes = await fetch(BIN_URL, {method:'PUT', headers:HEADERS, body:JSON.stringify({dishes,orders})});
-    if (!putRes.ok) throw new Error('PUT failed');
+    const res = await fetch(BIN_URL, {method:'PUT', headers:HEADERS, body:JSON.stringify({dishes, orders})});
+    if (!res.ok) throw new Error('PUT failed');
     window._cloudLoaded = true;
     setSyncStatus('ok', `已保存 · ${dishes.length} 道菜`);
   } catch(e) {
-    localStorage.setItem('cached_dishes', JSON.stringify(dishes));
-    setSyncStatus('error','保存失败，已存本地');
+    setSyncStatus('error', '保存失败，已存本地');
   }
 }
 
@@ -473,11 +462,9 @@ async function addDish() {
   buildEmojiRow(); renderAdmin(); showToast('✅ 已添加并同步到云端！');
 }
 
-async async function deleteDish(id) {
-  dishes = dishes.filter(d => d.id !== id);
-  renderAdmin();
-  renderMenu();
-  await saveToCloud();
+async function deleteDish(id) {
+  dishes=dishes.filter(d=>d.id!==id); delete cart[id];
+  await saveToCloud(); renderAdmin(); renderMenu(); updateCartBar(); showToast('已删除');
 }
 
 function renderMenu() {
