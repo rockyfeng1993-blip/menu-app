@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>ä»Šå¤©åƒä»€ä¹ˆ ðŸœ</title>
+  <title>今天吃什么 🍜</title>
   <style>
     :root{--pink:#E8537A;--pink-light:#FFF0F4;--card:#fff;--bg:#FDF6F8;--text:#2D1520;--text-soft:#9E7080;--r:20px}
     *{box-sizing:border-box;margin:0;padding:0}
@@ -21,7 +21,7 @@
     .thumb{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--pink-light);font-size:48px;overflow:hidden}
     .thumb img{width:100%;height:100%;object-fit:cover}
     .dinfo{padding:10px 12px}.dname{font-size:15px;font-weight:600}.dprefs{font-size:12px;color:var(--text-soft);margin-top:4px}
-    .qty-row{display:flex;align-items:center;justify-content:space-between;podding:8px 12px 12px}
+    .qty-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px 12px}
     .qbtn{width:32px;height:32px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
     .qbtn.m{background:#f0e0e6;color:var(--pink)}.qbtn.p{background:var(--pink);color:#fff}
     .qnum{font-size:16px;font-weight:600;min-width:24px;text-align:center}
@@ -68,61 +68,53 @@
 <body>
 
 <div class="page active" id="page-menu">
-  <div class="hero"><div class="hero-icon">ðŸœ</div><h1>ä»Šå¤©åƒä»€ä¹ˆ/h1><p>é€‰å¥µä½ æƒ³è¥çš„ï¼Œä»–æœ¥å¸®ä½ åš ðŸ¥°à</p></div>
-  <div class="sync-bar"><div class="dot" id="syncDot"></div><span id="syncMsg">åŠ è½½ä¸­â€¦</span></div>
+  <div class="hero"><div class="hero-icon">🍜</div><h1>今天吃什么</h1><p>选好你想要的，他来帮你做 🥰</p></div>
+  <div class="sync-bar"><div class="dot" id="syncDot"></div><span id="syncMsg">加载中…</span></div>
   <div style="padding:16px"><div class="grid" id="menuGrid"></div></div>
 </div>
 
 <div class="page" id="page-admin">
-  <div class="admin-hero"><h2>ðŸ‘¨â€ðŸ³ åŽå°ç®¡ç†</h2><p>åªæœ‰ä½ èƒ½çœ‹åˆ°è¿™é‡Œ</p></div>
+  <div class="admin-hero"><h2>👨‍🍳 后台管理</h2><p>只有你能看到这里</p></div>
   <div style="padding:16px">
     <div class="card">
-      <div class="card-title">ðŸ“± å¾®ä¿¡æŽ¨é€ï¼ˆServeré…±ï¼‰</div>
-      <div class="fr">
-        <label class="fl">SendKey</label>
-        <div class="sk-row">
-          <input class="fi" id="skInput" placeholder="SCTâ€¦">
-          <button class="bsm bsm-pink" onclick="saveSK()">ä¿å­˜</button>
-          <button class="bsm bsm-out" onclick="testSK()">æµ‹è¯•</button>
-        </div>
-        <div id="skStatus" style="font-size:12px;color:var(--text-soft);margin-top:6px"></div>
-      </div>
+      <div class="card-title">📱 微信推送（Server酱）</div>
+      <div class="fr"><label class="fl">SendKey</label>
+        <div class="sk-row"><input class="fi" id="skInput" placeholder="SCT…"><button class="bsm bsm-pink" onclick="saveSK()">保存</button><button class="bsm bsm-out" onclick="testSK()">测试</button></div>
+        <div id="skStatus" style="font-size:12px;color:var(--text-soft);margin-top:6px"></div></div>
     </div>
     <div class="card">
-      <div class="card-title">+ æ·»åŠ èœå“</div>
-      <div class="fr"><label class="fl">èœå“åç§°</label><input class="fi" id="dishName" placeholder="æ¯”å¦‚ï¼šçº¢çƒ§è‚‰ã€ç•ªèŒ„ç‚’è›‹â€¦"></div>
-      <div class="fr">
-        <label class="fl">å›¾æ ‡</label>
+      <div class="card-title">+ 添加菜品</div>
+      <div class="fr"><label class="fl">菜品名称</label><input class="fi" id="dishName" placeholder="比如：红烧肉、番茄炒蛋…"></div>
+      <div class="fr"><label class="fl">图标</label>
         <div class="emoji-row" id="emojiRow"></div>
-        <label class="upload-label"><span>ðŸ“·</span><span id="uploadLabel">æˆ–ä¸Šä¼ å›¾ç‰‡</span><input type="file" accept="image/*" style="display:none" id="imgFileInput" onchange="handleImgUpload(this)"></label>
+        <label class="upload-label"><span>📷</span><span id="uploadLabel">或上传图片</span><input type="file" accept="image/*" style="display:none" id="imgFileInput" onchange="handleImgUpload(this)"></label>
         <img id="imgPreview" class="img-preview">
       </div>
-      <div class="fr">
-        <label class="fl">å£å‘³åå¥½é€‰é¡¹</label>
-        <div class="pref-row"><input class="fi" id="prefInput" placeholder="æ¯”å¦‚ï¼šå…è‘±èŠ±" onkeydown="if(event.key==='Enter')addPref()"><button class="bsm bsm-pink" onclick="addPref()">æ·»åŠ </button></div>
+      <div class="fr"><label class="fl">口味偏好选项</label>
+        <div class="pref-row"><input class="fi" id="prefInput" placeholder="比如：免葱花" onkeydown="if(event.key==='Enter')addPref()"><button class="bsm bsm-pink" onclick="addPref()">添加</button></div>
         <div class="pref-tags" id="buildPrefsList"></div>
         <div class="qprefs">
-          <span class="qpref" onclick="quickAddPref('å…è‘±èŠ±')">å…è‘±èŠ±</span>
-          <span class="qpref" onclick="quickAddPref('å…é¦™èœ')">å…é¦™èœ</span>
-          <span class="qpref" onclick="quickAddPref('åŠ è¾£')">åŠ è¾£</span>
-          <span class="qpref" onclick="quickAddPref('å°‘è¾£')">å°‘è¾£</span>
-          <span class="qpref" onclick="quickAddPref('ä¸è¾£')">ä¸è¾£</span>
-          <span class="qpref" onclick="quickAddPref('å°‘ç›')">å°‘ç›</span>
-          <span class="qpref" onclick="quickAddPref('å°‘æ²¹')">å°‘æ²¹</span>
-          <span class="qpref" onclick="quickAddPref('åŠ è’œ')">åŠ è’œ</span>
+          <span class="qpref" onclick="quickAddPref('免葱花')">免葱花</span>
+          <span class="qpref" onclick="quickAddPref('免香菜')">免香菜</span>
+          <span class="qpref" onclick="quickAddPref('加辣')">加辣</span>
+          <span class="qpref" onclick="quickAddPref('少辣')">少辣</span>
+          <span class="qpref" onclick="quickAddPref('不辣')">不辣</span>
+          <span class="qpref" onclick="quickAddPref('少盐')">少盐</span>
+          <span class="qpref" onclick="quickAddPref('少油')">少油</span>
+          <span class="qpref" onclick="quickAddPref('加蒜')">加蒜</span>
         </div>
       </div>
-      <button class="btn btn-pink" onclick="addDish()">åŠ å…¥èœå• â˜ï¸ è‡ªåŠ¨åŒæ­¥</button>
+      <button class="btn btn-pink" onclick="addDish()">加入菜单 ☁️ 自动同步</button>
     </div>
-    <div class="card"><div class="card-title">ðŸ“‹ å½“å‰èœå•</div><div id="dishListAdmin"></div></div>
+    <div class="card"><div class="card-title">📋 当前菜单</div><div id="dishListAdmin"></div></div>
   </div>
 </div>
 
 <nav class="nav">
-  <button class="nbtn active" id="navMenu" onclick="showPage('menu')"><span class="nicon">ðŸ½ï¸</span><span>èœå•</span></button>
-  <button class="nbtn" id="navAdmin" onclick="showPage('admin')"><span class="nicon">ðŸ‘¨â€ðŸ³</span><span>ç®¡ç†</span></button>
+  <button class="nbtn active" id="navMenu" onclick="showPage('menu')"><span class="nicon">🍽️</span><span>菜单</span></button>
+  <button class="nbtn" id="navAdmin" onclick="showPage('admin')"><span class="nicon">👨‍🍳</span><span>管理</span></button>
 </nav>
-<div class="submit-wrap"><button class="submit-btn" id="submitBtn" onclick="submitOrder()">ðŸ›Žï¸ å‘Šè¯‰ä»–æˆ‘è¦åƒè¿™äº›</button></div>
+<div class="submit-wrap"><button class="submit-btn" id="submitBtn" onclick="submitOrder()">🛒️ 告诉他我要吃这些</button></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -131,32 +123,32 @@ const MASTER_KEY='$2a$10$VFkj5Dl8SWCh9n16NClmyO49tS9P54oTS3CZ5rYXIjK7OvvKHoa9W';
 const HEADERS={'Content-Type':'application/json','X-Master-Key':MASTER_KEY};
 const SK_KEY='mymenu_sendkey';
 const DEFAULT_SK='SCT333500TNOeqvOwysfdYCven8FfOM6Sb';
-const EMOJIS=['ðŸœ','ðŸš','ðŸ³','ðŸ¥©','ðŸŸ','ðŸ¤','ðŸ²','ðŸ¥—','ðŸ±','ðŸ¥Ÿ','ðŸ•','ðŸŒ®','ðŸ¥š','ðŸµ','ðŸ¥¦','ðŸ–'];
+const EMOJIS=['🍜','🍚','🍳','🥩','🐟','🍤','🍲','🥗','🍱','🥟','🍕','🌮','🥚','🌵','🥦','🍖'];
 let dishes=[],orders={},pendingImg=null,buildingPrefs=[];
 function getSK(){return localStorage.getItem(SK_KEY)||DEFAULT_SK;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function setSyncStatus(s,msg){document.getElementById('syncDot').className='dot '+s;document.getElementById('syncMsg').textContent=msg;}
 function showPage(p){document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nbtn').forEach(el=>el.classList.remove('active'));document.getElementById(p==='menu'?'navMenu':'navAdmin').classList.add('active');if(p==='admin'){renderAdmin();const s=localStorage.getItem(SK_KEY);if(s)document.getElementById('skInput').value=s;}}
-async function loadFromCloud(){setSyncStatus('loading','åŒæ­¥ä¸­â€¦');const cached=JSON.parse(localStorage.getItem('cached_dishes')||'[]');if(cached.length>0){dishes=cached;renderMenu();setSyncStatus('ok','èœå•å·²åŒæ­¥ Â· '+dishes.length+' é“èœ');}const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}}).catch(()=>null);if(res){const data=await res.json();dishes=data.record.dishes||[];orders=data.record.orders||{};localStorage.setItem('cached_dishes',JSON.stringify(dishes));setSyncStatus('ok','èœå•å·²é€šå·² '+dishes.length+'é“èœ');renderMenu();}else{setSyncStatus('error','ç¦»çº¿æª¡å¼');if(dishes.length===0)renderMenu();}}
-async function saveToCloud(){setSyncStatus('loading','ä¿å­˜ä¸­â€¦');localStorage.setItem('cached_dishes',JSON.stringify(dishes));const res=await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes,orders})}).catch(()=>null);if(res&&res.ok){setSyncStatus('ok','å·²ä¿å­˜ Â· '+dishes.length+'é“èœ');}else{setSyncStatus('error','ä¿å­˜å¤±è´¥');}}
-function renderMenu(){const g=document.getElementById('menuGrid');if(!dishes.length){g.innerHTML='<div class="empty" style="grid-column:span 2"><span class="empty-icon">ðŸ¿ï¸</span><p>è¿˜æ²¡æœ‰èœï¼ŒåŽ»æ–¹æ—¶æ—¶æ·»åŠ å§ï¼</p></div>';document.getElementById('submitBtn').style.display='none';return;evengrid.innerHTML=dishes.map(d=>{const qty=orders[d.id]||0;const th=d.img?`<img src="${d.img}" alt="${d.name}">`:(d.emoji||'ðŸœ');return `<div class="card-dish"><div class="thumb">${th}</div><div class="dinfo"><div class="dname">${d.name}</div>${d.prefs&&d.prefs.length?'<div class="dprefs">'+d.prefs.join(' Â· ')+'</div>':''}</div><div class="qty-row"><button class="qbtn m" onclick="changeQty('${d.id}',-1)">âˆ’</button><span class="qnum" id="qty-${d.id}">${qty}</span><button class="qbtn p" onclick="changeQty('${d.id}',1)">+</button></div></div>`;}).join('');updateSubmitBtn();}
+async function loadFromCloud(){setSyncStatus('loading','同步中…');const cached=JSON.parse(localStorage.getItem('cached_dishes')||'[]');if(cached.length>0){dishes=cached;renderMenu();setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');}const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}}).catch(()=>null);if(res){const data=await res.json();dishes=data.record.dishes||[];orders=data.record.orders||{};localStorage.setItem('cached_dishes',JSON.stringify(dishes));setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}else{setSyncStatus('error','离线模式');if(dishes.length===0)renderMenu();}}
+async function saveToCloud(){setSyncStatus('loading','保存中…');localStorage.setItem('cached_dishes',JSON.stringify(dishes));const res=await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes,orders})}).catch(()=>null);if(res&&res.ok)setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');else setSyncStatus('error','保存失败');}
+function renderMenu(){const g=document.getElementById('menuGrid');if(!dishes.length){g.innerHTML='<div class="empty" style="grid-column:span 2"><span class="empty-icon">🍽️</span><p>还没有菜，去管理端添加吧！</p></div>';document.getElementById('submitBtn').style.display='none';return;}g.innerHTML=dishes.map(d=>{const qty=orders[d.id]||0;const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');return '<div class="card-dish"><div class="thumb">'+th+'</div><div class="dinfo"><div class="dname">'+d.name+'</div>'+(d.prefs&&d.prefs.length?'<div class="dprefs">'+d.prefs.join(' · ')+'</div>':'')+'</div><div class="qty-row"><button class="qbtn m" onclick="changeQty(\''+d.id+'\', -1)">−</button><span class="qnum" id="qty-'+d.id+'">'+qty+'</span><button class="qbtn p" onclick="changeQty(\''+d.id+'\', 1)">+</button></div></div>';}).join('');updateSubmitBtn();}
 function changeQty(id,d){orders[id]=Math.max(0,(orders[id]||0)+d);const e=document.getElementById('qty-'+id);if(e)e.textContent=orders[id];updateSubmitBtn();}
 function updateSubmitBtn(){const t=Object.values(orders).reduce((a,b)=>a+b,0);document.getElementById('submitBtn').style.display=t>0?'block':'none';}
-async function submitOrder(){const items=dishes.filter(d=>orders[d.id]>0).map(d=>d.name+' x'+orders[d.id]).join('ã€');if(!items)return;try{await fetch(`https://sctapi.ftqq.com/${getSK()}.send`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=Kellyè¦åƒï¼š'+encodeURIComponent(items)+'&desp='+encodeURIComponent(items)});showToast('âœ… å·²é€šç§¥ï¼');orders={};renderMenu();}catch(e){showToast('å‘é€å¤±è´¥');}}
-function renderAdmin(){const l=document.getElementById('dishListAdmin');if(!dishes.length){l.innerHTML='<div class="empty"><span class="empty-icon">ðŸ¿ï¸</span><p>é€šæ²¡æœ‰èœï¼Œå¿«åŽ»æ·»åŠ å§ï¼</p></div>';return;e}l.innerHTML=dishes.map(d=>{const th=d.img?`<img src="${d.img}" alt="${d.name}">`:(d.emoji||'ðŸœ');return `<div class="dai"><div class="da-thumb">${th}</div><div class="da-info"><div class="da-name">${d.name}</div><div class="da-prefs">${d.prefs&&d.prefs.length?d.prefs.join(' Â· '):'äºŒåå¥½é€‰é¡¹'}</div></div><button class="btn-del" onclick="deleteDish('${d.id}')">ðŸ—‘ï¸</button></div>`;}).join('');}
-function buildEmojiRow(sel){document.getElementById('emojiRow').innerHTML=EMOJIS.map(e=>`<span class="eopt${e===sel?' sel':''}" onclick="selectEmoji(this)">${e}</span>`).join('');}
-function selectEmoji(el){document.querySelectorAll('#emojiRow .eopt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');pendingImg=null;document.getElementById('imgPreview').style.display='none';document.getElementById('uploadLabel').textContent='æˆ–ä¸Šä¼ å›¾ç‰‡';document.getElementById('imgFileInput').value='';}
-function getSelectedEmoji(){return document.querySelector('#emojiRow .eopt.sel')?.textContent||'ðŸœ';}
-function handleImgUpload(input){if(!input.files||!input.files[0])return;const reader=new FileReader();reader.onload=function(e){const img=new Image();img.onload=function(){const c=document.createElement('canvas');const M=400;let w=img.width,h=img.height;if(w>h){ if(w>M){h=h*M/w;w=M;}}else{if(h>M){w=w*M/h;h=M;}}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);pendingImg=c.toDataURL('image/jpeg',0.7);const p=document.getElementById('imgPreview');p.src=pendingImg;p.style.display='block';document.getElementById('uploadLabel').textContent='å·²ä¸Šä¼ å›»ç™‡';document.querySelectorAll('#emojiRow .eopt').forEach(o=>o.classList.remove('sel'));};img.src=e.target.result;};reader.readAsDataURL(input.files[0]);}
-function renderBuildPrefs(){document.getElementById('buildPrefsList').innerHTML=buildingPrefs.map((p,i)=>`<span class="ptag">${p}<span class="ptag-del" onclick="buildingPrefs.splice(${i},1);renderBuildPrefs()">Ã—O¼/span></span>`).join('');}
+async function submitOrder(){const items=dishes.filter(d=>orders[d.id]>0).map(d=>d.name+' x'+orders[d.id]).join('、');if(!items)return;await fetch('https://sctapi.ftqq.com/'+getSK()+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=Kelly要吃：'+encodeURIComponent(items)+'&desp='+encodeURIComponent(items)}).catch(()=>null);showToast('✅ 已通知！');orders={};renderMenu();}
+function renderAdmin(){const l=document.getElementById('dishListAdmin');if(!dishes.length){l.innerHTML='<div class="empty"><span class="empty-icon">🍽️</span><p>还没有菜！</p></div>';return;}l.innerHTML=dishes.map(d=>{const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');return '<div class="dai"><div class="da-thumb">'+th+'</div><div class="da-info"><div class="da-name">'+d.name+'</div><div class="da-prefs">'+(d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项')+'</div></div><button class="btn-del" onclick="deleteDish(\''+d.id+'\')">\ud83d\uddd1\ufe0f</button></div>';}).join('');}
+function buildEmojiRow(sel){document.getElementById('emojiRow').innerHTML=EMOJIS.map(e=>'<span class="eopt'+(e===sel?' sel':'')+'" onclick="selectEmoji(this)">'+e+'</span>').join('');}
+function selectEmoji(el){document.querySelectorAll('#emojiRow .eopt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');pendingImg=null;document.getElementById('imgPreview').style.display='none';document.getElementById('uploadLabel').textContent='或上传图片';document.getElementById('imgFileInput').value='';}
+function getSelectedEmoji(){return document.querySelector('#emojiRow .eopt.sel')?.textContent||'🍜';}
+function handleImgUpload(input){if(!input.files||!input.files[0])return;const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const M=400;let w=img.width,h=img.height;if(w>h){if(w>M){h=h*M/w;w=M;}}else{if(h>M){w=w*M/h;h=M;}}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);pendingImg=c.toDataURL('image/jpeg',0.7);const p=document.getElementById('imgPreview');p.src=pendingImg;p.style.display='block';document.getElementById('uploadLabel').textContent='已上传图片';document.querySelectorAll('#emojiRow .eopt').forEach(o=>o.classList.remove('sel'));};img.src=e.target.result;};reader.readAsDataURL(input.files[0]);}
+function renderBuildPrefs(){document.getElementById('buildPrefsList').innerHTML=buildingPrefs.map((p,i)=>'<span class="ptag">'+p+'<span class="ptag-del" onclick="buildingPrefs.splice('+i+',1);renderBuildPrefs()">×</span></span>').join('');}
 function addPref(){const i=document.getElementById('prefInput');const v=i.value.trim();if(!v||buildingPrefs.includes(v)){i.value='';return;}buildingPrefs.push(v);renderBuildPrefs();i.value='';}
 function quickAddPref(p){if(!buildingPrefs.includes(p)){buildingPrefs.push(p);renderBuildPrefs();}}
-async function addDish(){const n=document.getElementById('dishName').value.trim();if(!n){showToast('è¯·è¾“å…¥èœå“åç·°');return;dishes.push({id:'d_'+Date.now(),name:n,emoji:getSelectedEmoji(),img:pendingImg,prefs:[...buildingPrefs]});document.getElementById('dishName').value='';pendingImg=null;buildingPrefs=[];document.getElementById('imgPreview').style.display='none';document.getElementById('uploadLabel').textContent='æˆ–ä¸Šä¼ å›»ç™‡';document.getElementById('imgFileInput').value='';document.getElementById('buildPrefsList').innerHTML='';buildEmojiRow('ðŸœ');await saveToCloud();renderAdmin();showToast('âœ… å·²æ·»åŠ ï¼š'+n);}
-async function deleteDish(id){const d=dishes.find(x=>x.id===id);dishes=dishes.filter(x=>x.id!==id);await saveToCloud();renderAdmin();renderMenu();if(d)showToast('å·²åˆ é©¤ï¼š'+d.name);}
-function saveSK(){const v=document.getElementById('skInput').value.trim();if(!v){showToast('è¯·è¾“å…¥ SendKey');return;}localStorage.setItem(SK_KEY,v);document.getElementById('skStatus').textContent='âœ… å·²ä¿å­˜';showToast('SendKey å·²ä¿å­˜');}
-async function testSK(){const sk=document.getElementById('skInput').value.trim()||getSK();if(!sk){showToast('è¯·å…ˆè¾“å…¥ SendKey');return;}await fetch(`https://sctapi.ftqq.com/${sk}.send`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=æµ‹è¯•æŽ¨é€&desp=ä»Šå¤©åƒä»€ä¹ˆ App æŽ¨é€æµ‹è¯•æˆåŠŸï¼'}).catch(()=>null);showToast('âœ… æµ‹è¯•æ±¡èŠ±å·²åŒ');}
+async function addDish(){const name=document.getElementById('dishName').value.trim();if(!name){showToast('请填写菜品名称');return;}dishes.push({id:'d_'+Date.now(),name,emoji:getSelectedEmoji(),img:pendingImg,prefs:[...buildingPrefs]});document.getElementById('dishName').value='';pendingImg=null;buildingPrefs=[];document.getElementById('imgPreview').style.display='none';document.getElementById('uploadLabel').textContent='或上传图片';document.getElementById('imgFileInput').value='';document.getElementById('buildPrefsList').innerHTML='';buildEmojiRow('🍜');await saveToCloud();renderAdmin();showToast('✅ 已添加：'+name);}
+async function deleteDish(id){const d=dishes.find(x=>x.id===id);dishes=dishes.filter(x=>x.id!==id);await saveToCloud();renderAdmin();renderMenu();if(d)showToast('已删除：'+d.name);}
+function saveSK(){const v=document.getElementById('skInput').value.trim();if(!v){showToast('请输入 SendKey');return;}localStorage.setItem(SK_KEY,v);document.getElementById('skStatus').textContent='✅ 已保存';showToast('SendKey 已保存');}
+async function testSK(){const sk=document.getElementById('skInput').value.trim()||getSK();await fetch('https://sctapi.ftqq.com/'+sk+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=测试推送&desp=推送测试成功！'}).catch(()=>null);showToast('✅ 测试消息已发送');}
 if(!localStorage.getItem(SK_KEY))localStorage.setItem(SK_KEY,DEFAULT_SK);
-buildEmojiRow('ðŸœ');
+buildEmojiRow('🍜');
 loadFromCloud();
 </script>
 </body>
