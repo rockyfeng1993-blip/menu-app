@@ -6,63 +6,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>今天吃什么 🍜</title>
   <style>
-    :root{--pink:#E8537A;--pink-light:#FFF0F4;--card:#fff;--bg:#FDF6F8;--text:#2D1520;--text-soft:#9E7080;--r:20px}
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
-    .hero{background:linear-gradient(135deg,#F48FB1,#E8537A);padding:32px 20px 24px;text-align:center;color:#fff}
-    .hero-icon{font-size:48px}.hero h1{font-size:28px;font-weight:700;margin:8px 0 4px}.hero p{font-size:14px;opacity:.9}
-    .sync-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;color:var(--text-soft);background:#fff;border-bottom:1px solid #f0e0e6}
-    .dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0}
-    .dot.ok{background:#4CAF50}.dot.loading{background:#FF9800;animation:pulse 1s infinite}.dot.error{background:#f44336}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-    .page{display:none;padding:16px}.page.active{display:block}
-    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    .card-dish{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:0 2px 12px rgba(232,83,122,.08)}
-    .thumb{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--pink-light);font-size:48px;overflow:hidden}
-    .thumb img{width:100%;height:100%;object-fit:cover}
-    .dinfo{padding:10px 12px}.dname{font-size:15px;font-weight:600}.dprefs{font-size:12px;color:var(--text-soft);margin-top:4px}
-    .qty-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px 12px}
-    .qbtn{width:32px;height:32px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-    .qbtn.m{background:#f0e0e6;color:var(--pink)}.qbtn.p{background:var(--pink);color:#fff}
-    .qnum{font-size:16px;font-weight:600;min-width:24px;text-align:center}
-    .submit-wrap{position:fixed;bottom:72px;left:0;right:0;padding:0 16px;pointer-events:none}
-    .submit-btn{width:100%;background:var(--pink);color:#fff;border:none;border-radius:50px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;pointer-events:all;box-shadow:0 4px 20px rgba(232,83,122,.4);display:none}
-    .empty{text-align:center;padding:60px 20px;color:var(--text-soft)}
-    .empty-icon{font-size:56px;display:block;margin-bottom:12px}
-    .admin-hero{background:linear-gradient(135deg,#2D1520,#5D2B3E);padding:24px 20px;text-align:center;color:#fff}
-    .admin-hero h2{font-size:20px;font-weight:700}.admin-hero p{font-size:12px;opacity:.7;margin-top:4px}
-    .card{background:#fff;border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-    .card-title{font-size:15px;font-weight:700;margin-bottom:12px}
-    .fl{font-size:13px;color:var(--text-soft);margin-bottom:6px;display:block}
-    .fi{width:100%;border:1.5px solid #f0e0e6;border-radius:12px;padding:10px 14px;font-size:15px;outline:none;background:var(--pink-light)}
-    .fi:focus{border-color:var(--pink)}.fr{margin-bottom:12px}
-    .emoji-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-    .eopt{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;background:var(--pink-light);border:2px solid transparent}
-    .eopt.sel{border-color:var(--pink);background:#fff}
-    .upload-label{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pink-light);border:1.5px dashed var(--pink);border-radius:12px;cursor:pointer;font-size:14px;color:var(--pink)}
-    .img-preview{width:60px;height:60px;border-radius:12px;object-fit:cover;display:none;margin-top:8px}
-    .pref-row{display:flex;gap:8px;margin-bottom:8px}
-    .pref-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-    .ptag{background:var(--pink-light);color:var(--pink);border-radius:20px;padding:4px 10px;font-size:13px;display:flex;align-items:center;gap:4px}
-    .ptag-del{cursor:pointer;font-size:16px;line-height:1}
-    .qprefs{display:flex;flex-wrap:wrap;gap:6px}
-    .qpref{background:#f5f5f5;border-radius:20px;padding:4px 10px;font-size:13px;cursor:pointer}
-    .btn{border:none;border-radius:50px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
-    .btn-pink{background:var(--pink);color:#fff}
-    .bsm{border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-    .bsm-pink{background:var(--pink);color:#fff}.bsm-out{background:#fff;color:var(--pink);border:1.5px solid var(--pink)}
-    .dai{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0e0e6}
-    .dai:last-child{border-bottom:none}
-    .da-thumb{width:48px;height:48px;border-radius:12px;background:var(--pink-light);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;flex-shrink:0}
-    .da-thumb img{width:100%;height:100%;object-fit:cover}
-    .da-info{flex:1;min-width:0}.da-name{font-weight:600;font-size:15px}.da-prefs{font-size:12px;color:var(--text-soft);margin-top:2px}
-    .btn-del{background:none;border:none;font-size:20px;cursor:pointer;color:#ccc;padding:4px;flex-shrink:0}
-    .nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0e0e6;display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:100}
-    .nbtn{flex:1;border:none;background:none;padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:#ccc;font-size:12px}
-    .nbtn.active{color:var(--pink)}.nicon{font-size:24px}
-    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(45,21,32,.9);color:#fff;padding:10px 20px;border-radius:50px;font-size:14px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
-    .toast.show{opacity:1}
-    .sk-row{display:flex;gap:8px}.sk-row .fi{flex:1}
+:root{--pink:#E8537A;--pink-light:#FFF0F4;--card:#fff;--bg:#FDF6F8;--text:#2D1520;--text-soft:#9E7080;--r:20px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+.hero{background:linear-gradient(135deg,#F48FB1,#E8537A);padding:32px 20px 24px;text-align:center;color:#fff}
+.hero-icon{font-size:48px}.hero h1{font-size:28px;font-weight:700;margin:8px 0 4px}.hero p{font-size:14px;opacity:.9}
+.sync-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;color:var(--text-soft);background:#fff;border-bottom:1px solid #f0e0e6}
+.dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0}
+.dot.ok{background:#4CAF50}.dot.loading{background:#FF9800;animation:pulse 1s infinite}.dot.error{background:#f44336}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.page{display:none;padding:16px}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card-dish{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:0 2px 12px rgba(232,83,122,.08)}
+.thumb{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--pink-light);font-size:48px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.dinfo{padding:10px 12px}.dname{font-size:15px;font-weight:600}
+.dpref-list{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 8px}
+.dpref-btn{background:#f5f5f5;border:1.5px solid #eee;border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--text-soft)}
+.dpref-btn.sel{background:var(--pink-light);border-color:var(--pink);color:var(--pink)}
+.qty-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px 12px}
+.qbtn{width:32px;height:32px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qbtn.m{background:#f0e0e6;color:var(--pink)}.qbtn.p{background:var(--pink);color:#fff}
+.qnum{font-size:16px;font-weight:600;min-width:24px;text-align:center}
+.submit-wrap{position:fixed;bottom:72px;left:0;right:0;padding:0 16px;pointer-events:none}
+.submit-btn{width:100%;background:var(--pink);color:#fff;border:none;border-radius:50px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;pointer-events:all;box-shadow:0 4px 20px rgba(232,83,122,.4);display:none}
+.empty{text-align:center;padding:60px 20px;color:var(--text-soft)}
+.empty-icon{font-size:56px;display:block;margin-bottom:12px}
+.admin-hero{background:linear-gradient(135deg,#2D1520,#5D2B3E);padding:24px 20px;text-align:center;color:#fff}
+.admin-hero h2{font-size:20px;font-weight:700}.admin-hero p{font-size:12px;opacity:.7;margin-top:4px}
+.card{background:#fff;border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-title{font-size:15px;font-weight:700;margin-bottom:12px}
+.fl{font-size:13px;color:var(--text-soft);margin-bottom:6px;display:block}
+.fi{width:100%;border:1.5px solid #f0e0e6;border-radius:12px;padding:10px 14px;font-size:15px;outline:none;background:var(--pink-light)}
+.fi:focus{border-color:var(--pink)}.fr{margin-bottom:12px}
+.emoji-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.eopt{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;background:var(--pink-light);border:2px solid transparent}
+.eopt.sel{border-color:var(--pink);background:#fff}
+.upload-label{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pink-light);border:1.5px dashed var(--pink);border-radius:12px;cursor:pointer;font-size:14px;color:var(--pink)}
+.img-preview{width:60px;height:60px;border-radius:12px;object-fit:cover;display:none;margin-top:8px}
+.pref-row{display:flex;gap:8px;margin-bottom:8px}
+.pref-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.ptag{background:var(--pink-light);color:var(--pink);border-radius:20px;padding:4px 10px;font-size:13px;display:flex;align-items:center;gap:4px}
+.ptag-del{cursor:pointer;font-size:16px;line-height:1}
+.qprefs{display:flex;flex-wrap:wrap;gap:6px}
+.qpref{background:#f5f5f5;border-radius:20px;padding:4px 10px;font-size:13px;cursor:pointer}
+.btn{border:none;border-radius:50px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
+.btn-pink{background:var(--pink);color:#fff}
+.bsm{border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bsm-pink{background:var(--pink);color:#fff}.bsm-out{background:#fff;color:var(--pink);border:1.5px solid var(--pink)}
+.dai{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0e0e6}
+.dai:last-child{border-bottom:none}
+.da-thumb{width:48px;height:48px;border-radius:12px;background:var(--pink-light);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;flex-shrink:0}
+.da-thumb img{width:100%;height:100%;object-fit:cover}
+.da-info{flex:1;min-width:0}.da-name{font-weight:600;font-size:15px}.da-prefs{font-size:12px;color:var(--text-soft);margin-top:2px}
+.btn-del{background:none;border:none;font-size:20px;cursor:pointer;color:#ccc;padding:4px;flex-shrink:0}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0e0e6;display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.nbtn{flex:1;border:none;background:none;padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:#ccc;font-size:12px}
+.nbtn.active{color:var(--pink)}.nicon{font-size:24px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(45,21,32,.9);color:#fff;padding:10px 20px;border-radius:50px;font-size:14px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.sk-row{display:flex;gap:8px}.sk-row .fi{flex:1}
   </style>
 </head>
 <body>
@@ -76,20 +79,16 @@
 <div class="page" id="page-admin">
   <div class="admin-hero"><h2>👨‍🍳 后台管理</h2><p>只有你能看到这里</p></div>
   <div style="padding:16px">
-    <div class="card">
-      <div class="card-title">📱 微信推送（Server酱）</div>
+    <div class="card"><div class="card-title">📱 微信推送（Server酱）</div>
       <div class="fr"><label class="fl">SendKey</label>
         <div class="sk-row"><input class="fi" id="skInput" placeholder="SCT…"><button class="bsm bsm-pink" onclick="saveSK()">保存</button><button class="bsm bsm-out" onclick="testSK()">测试</button></div>
-        <div id="skStatus" style="font-size:12px;color:var(--text-soft);margin-top:6px"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">+ 添加菜品</div>
+        <div id="skStatus" style="font-size:12px;color:var(--text-soft);margin-top:6px"></div></div></div>
+    <div class="card"><div class="card-title">+ 添加菜品</div>
       <div class="fr"><label class="fl">菜品名称</label><input class="fi" id="dishName" placeholder="比如：红烧肉、番茄炒蛋…"></div>
       <div class="fr"><label class="fl">图标</label>
         <div class="emoji-row" id="emojiRow"></div>
         <label class="upload-label"><span>📷</span><span id="uploadLabel">或上传图片</span><input type="file" accept="image/*" style="display:none" id="imgFileInput" onchange="handleImgUpload(this)"></label>
-        <img id="imgPreview" class="img-preview">
-      </div>
+        <img id="imgPreview" class="img-preview"></div>
       <div class="fr"><label class="fl">口味偏好选项</label>
         <div class="pref-row"><input class="fi" id="prefInput" placeholder="比如：免葱花" onkeydown="if(event.key==='Enter')addPref()"><button class="bsm bsm-pink" onclick="addPref()">添加</button></div>
         <div class="pref-tags" id="buildPrefsList"></div>
@@ -102,10 +101,8 @@
           <span class="qpref" onclick="quickAddPref('少盐')">少盐</span>
           <span class="qpref" onclick="quickAddPref('少油')">少油</span>
           <span class="qpref" onclick="quickAddPref('加蒜')">加蒜</span>
-        </div>
-      </div>
-      <button class="btn btn-pink" onclick="addDish()">加入菜单 ☁️ 自动同步</button>
-    </div>
+        </div></div>
+      <button class="btn btn-pink" onclick="addDish()">加入菜单 ☁️ 自动同步</button></div>
     <div class="card"><div class="card-title">📋 当前菜单</div><div id="dishListAdmin"></div></div>
   </div>
 </div>
@@ -124,17 +121,18 @@ const HEADERS={'Content-Type':'application/json','X-Master-Key':MASTER_KEY};
 const SK_KEY='mymenu_sendkey';
 const DEFAULT_SK='SCT333500TNOeqvOwysfdYCven8FfOM6Sb';
 const EMOJIS=['🍜','🍚','🍳','🥩','🐟','🍤','🍲','🥗','🍱','🥟','🍕','🌮','🥚','🌵','🥦','🍖'];
-let dishes=[],orders={},pendingImg=null,buildingPrefs=[];
+let dishes=[],orders={},selPrefs={},pendingImg=null,buildingPrefs=[];
 function getSK(){return localStorage.getItem(SK_KEY)||DEFAULT_SK;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function setSyncStatus(s,msg){document.getElementById('syncDot').className='dot '+s;document.getElementById('syncMsg').textContent=msg;}
 function showPage(p){document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nbtn').forEach(el=>el.classList.remove('active'));document.getElementById(p==='menu'?'navMenu':'navAdmin').classList.add('active');if(p==='admin'){renderAdmin();const s=localStorage.getItem(SK_KEY);if(s)document.getElementById('skInput').value=s;}}
-async function loadFromCloud(){setSyncStatus('loading','同步中…');const cached=JSON.parse(localStorage.getItem('cached_dishes')||'[]');if(cached.length>0){dishes=cached;renderMenu();setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');}const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}}).catch(()=>null);if(res){const data=await res.json();dishes=data.record.dishes||[];orders=data.record.orders||{};localStorage.setItem('cached_dishes',JSON.stringify(dishes));setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}else{setSyncStatus('error','离线模式');if(dishes.length===0)renderMenu();}}
+async function loadFromCloud(){setSyncStatus('loading','同步中…');try{const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});const data=await res.json();const cloudDishes=data.record.dishes||[];const cloudOrders=data.record.orders||{};if(dishes.length===0){dishes=cloudDishes;orders=cloudOrders;}else{const localIds=new Set(dishes.map(d=>d.id));cloudDishes.forEach(cd=>{if(!localIds.has(cd.id))dishes.push(cd);});}localStorage.setItem('cached_dishes',JSON.stringify(dishes));setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}catch(e){const cached=JSON.parse(localStorage.getItem('cached_dishes')||'[]');if(dishes.length===0&&cached.length>0){dishes=cached;}setSyncStatus('error','离线模式');renderMenu();}}
 async function saveToCloud(){setSyncStatus('loading','保存中…');localStorage.setItem('cached_dishes',JSON.stringify(dishes));const res=await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes,orders})}).catch(()=>null);if(res&&res.ok)setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');else setSyncStatus('error','保存失败');}
-function renderMenu(){const g=document.getElementById('menuGrid');if(!dishes.length){g.innerHTML='<div class="empty" style="grid-column:span 2"><span class="empty-icon">🍽️</span><p>还没有菜，去管理端添加吧！</p></div>';document.getElementById('submitBtn').style.display='none';return;}g.innerHTML=dishes.map(d=>{const qty=orders[d.id]||0;const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');return '<div class="card-dish"><div class="thumb">'+th+'</div><div class="dinfo"><div class="dname">'+d.name+'</div>'+(d.prefs&&d.prefs.length?'<div class="dprefs">'+d.prefs.join(' · ')+'</div>':'')+'</div><div class="qty-row"><button class="qbtn m" onclick="changeQty(\''+d.id+'\', -1)">−</button><span class="qnum" id="qty-'+d.id+'">'+qty+'</span><button class="qbtn p" onclick="changeQty(\''+d.id+'\', 1)">+</button></div></div>';}).join('');updateSubmitBtn();}
+function togglePref(dishId,pref){if(!selPrefs[dishId])selPrefs[dishId]=new Set();const s=selPrefs[dishId];if(s.has(pref))s.delete(pref);else s.add(pref);const btn=document.getElementById('pref-'+dishId+'-'+pref.replace(/[^a-z0-9]/gi,'_'));if(btn)btn.classList.toggle('sel');}
+function renderMenu(){const g=document.getElementById('menuGrid');if(!dishes.length){g.innerHTML='<div class="empty" style="grid-column:span 2"><span class="empty-icon">🍽️</span><p>还没有菜，去管理端添加吧！</p></div>';document.getElementById('submitBtn').style.display='none';return;}g.innerHTML=dishes.map(d=>{const qty=orders[d.id]||0;const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');const prefHTML=d.prefs&&d.prefs.length?'<div class="dpref-list">'+d.prefs.map(p=>{const pid='pref-'+d.id+'-'+p.replace(/[^a-z0-9]/gi,'_');const isSel=selPrefs[d.id]&&selPrefs[d.id].has(p);return '<button class="dpref-btn'+(isSel?' sel':'')+'" id="'+pid+'" onclick="togglePref(\''+d.id+'\',\''+p+'\')">'+ p+'</button>';}).join('')+'</div>':'';return '<div class="card-dish"><div class="thumb">'+th+'</div><div class="dinfo"><div class="dname">'+d.name+'</div></div>'+prefHTML+'<div class="qty-row"><button class="qbtn m" onclick="changeQty(\''+d.id+'\', -1)">−</button><span class="qnum" id="qty-'+d.id+'">'+qty+'</span><button class="qbtn p" onclick="changeQty(\''+d.id+'\', 1)">+</button></div></div>';}).join('');updateSubmitBtn();}
 function changeQty(id,d){orders[id]=Math.max(0,(orders[id]||0)+d);const e=document.getElementById('qty-'+id);if(e)e.textContent=orders[id];updateSubmitBtn();}
 function updateSubmitBtn(){const t=Object.values(orders).reduce((a,b)=>a+b,0);document.getElementById('submitBtn').style.display=t>0?'block':'none';}
-async function submitOrder(){const items=dishes.filter(d=>orders[d.id]>0).map(d=>d.name+' x'+orders[d.id]).join('、');if(!items)return;await fetch('https://sctapi.ftqq.com/'+getSK()+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=Kelly要吃：'+encodeURIComponent(items)+'&desp='+encodeURIComponent(items)}).catch(()=>null);showToast('✅ 已通知！');orders={};renderMenu();}
+async function submitOrder(){const items=dishes.filter(d=>orders[d.id]>0).map(d=>{const base=d.name+' x'+orders[d.id];const sp=selPrefs[d.id]&&selPrefs[d.id].size>0?'['+[...selPrefs[d.id]].join('+')+']':'';return base+sp;}).join('、');if(!items)return;await fetch('https://sctapi.ftqq.com/'+getSK()+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=Kelly要吃：'+encodeURIComponent(items)+'&desp='+encodeURIComponent(items)}).catch(()=>null);showToast('✅ 已通知！');orders={};selPrefs={};renderMenu();}
 function renderAdmin(){const l=document.getElementById('dishListAdmin');if(!dishes.length){l.innerHTML='<div class="empty"><span class="empty-icon">🍽️</span><p>还没有菜！</p></div>';return;}l.innerHTML=dishes.map(d=>{const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');return '<div class="dai"><div class="da-thumb">'+th+'</div><div class="da-info"><div class="da-name">'+d.name+'</div><div class="da-prefs">'+(d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项')+'</div></div><button class="btn-del" onclick="deleteDish(\''+d.id+'\')">\ud83d\uddd1\ufe0f</button></div>';}).join('');}
 function buildEmojiRow(sel){document.getElementById('emojiRow').innerHTML=EMOJIS.map(e=>'<span class="eopt'+(e===sel?' sel':'')+'" onclick="selectEmoji(this)">'+e+'</span>').join('');}
 function selectEmoji(el){document.querySelectorAll('#emojiRow .eopt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');pendingImg=null;document.getElementById('imgPreview').style.display='none';document.getElementById('uploadLabel').textContent='或上传图片';document.getElementById('imgFileInput').value='';}
