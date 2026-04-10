@@ -127,11 +127,23 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 function setSyncStatus(s,msg){document.getElementById('syncDot').className='dot '+s;document.getElementById('syncMsg').textContent=msg;}
 function showPage(p){document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nbtn').forEach(el=>el.classList.remove('active'));document.getElementById(p==='menu'?'navMenu':'navAdmin').classList.add('active');if(p==='admin'){renderAdmin();const s=localStorage.getItem(SK_KEY);if(s)document.getElementById('skInput').value=s;}}
 async function loadFromCloud(){setSyncStatus('loading','同步中…');try{const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});const data=await res.json();const cloudDishes=data.record.dishes||[];const cloudOrders=data.record.orders||{};if(dishes.length===0){dishes=cloudDishes;orders=cloudOrders;}else{const localIds=new Set(dishes.map(d=>d.id));cloudDishes.forEach(cd=>{if(!localIds.has(cd.id))dishes.push(cd);});}localStorage.setItem('cached_dishes',JSON.stringify(dishes));setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}catch(e){const cached=JSON.parse(localStorage.getItem('cached_dishes')||'[]');if(dishes.length===0&&cached.length>0){dishes=cached;}setSyncStatus('error','离线模式');renderMenu();}}
-async function saveToCloud(){setSyncStatus('loading','保存中…');localStorage.setItem('cached_dishes',JSON.stringify(dishes));const res=await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes,orders})}).catch(()=>null);if(res&&res.ok)setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');else setSyncStatus('error','保存失败');}
-function togglePref(dishId,pref){if(!selPrefs[dishId])selPrefs[dishId]=new Set();const s=selPrefs[dishId];if(s.has(pref))s.delete(pref);else s.add(pref);const btn=document.getElementById('pref-'+dishId+'-'+pref.replace(/[^a-z0-9]/gi,'_'));if(btn)btn.classList.toggle('sel');}
-function renderMenu(){const g=document.getElementById('menuGrid');if(!dishes.length){g.innerHTML='<div class="empty" style="grid-column:span 2"><span class="empty-icon">🍽️</span><p>还没有菜，去管理端添加吧！</p></div>';document.getElementById('submitBtn').style.display='none';return;}g.innerHTML=dishes.map(d=>{const qty=orders[d.id]||0;const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');const prefHTML=d.prefs&&d.prefs.length?'<div class="dpref-list">'+d.prefs.map(p=>{const pid='pref-'+d.id+'-'+p.replace(/[^a-z0-9]/gi,'_');const isSel=selPrefs[d.id]&&selPrefs[d.id].has(p);return '<button class="dpref-btn'+(isSel?' sel':'')+'" id="'+pid+'" onclick="togglePref(\''+d.id+'\',\''+p+'\')">'+ p+'</button>';}).join('')+'</div>':'';return '<div class="card-dish"><div class="thumb">'+th+'</div><div class="dinfo"><div class="dname">'+d.name+'</div></div>'+prefHTML+'<div class="qty-row"><button class="qbtn m" onclick="changeQty(\''+d.id+'\', -1)">−</button><span class="qnum" id="qty-'+d.id+'">'+qty+'</span><button class="qbtn p" onclick="changeQty(\''+d.id+'\', 1)">+</button></div></div>';}).join('');updateSubmitBtn();}
-function changeQty(id,d){orders[id]=Math.max(0,(orders[id]||0)+d);const e=document.getElementById('qty-'+id);if(e)e.textContent=orders[id];updateSubmitBtn();}
-function updateSubmitBtn(){const t=Object.values(orders).reduce((a,b)=>a+b,0);document.getElementById('submitBtn').style.display=t>0?'block':'none';}
+async function saveToCloud(){
+  setSyncStatus('loading','保存中…');
+  localStorage.setItem('cached_dishes',JSON.stringify(dishes));
+  try{
+    // 先拉云端最新，把云端有但本地没有的菜合并进来
+    const cloudRes=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});
+    const cloudData=await cloudRes.json();
+    const cloudDishes=cloudData.record?.dishes||[];
+    const localIds=new Set(dishes.map(d=>d.id));
+    cloudDishes.forEach(cd=>{if(!localIds.has(cd.id))dishes.push(cd);});
+    localStorage.setItem('cached_dishes',JSON.stringify(dishes));
+    const res=await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes,orders})}).catch(()=>null);
+    if(res&&res.ok)setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');
+    else setSyncStatus('error','保存失败');
+  }catch(e){setSyncStatus('error','保存失败');}
+}
+
 async function submitOrder(){const items=dishes.filter(d=>orders[d.id]>0).map(d=>{const base=d.name+' x'+orders[d.id];const sp=selPrefs[d.id]&&selPrefs[d.id].size>0?'['+[...selPrefs[d.id]].join('+')+']':'';return base+sp;}).join('、');if(!items)return;await fetch('https://sctapi.ftqq.com/'+getSK()+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=Kelly要吃：'+encodeURIComponent(items)+'&desp='+encodeURIComponent(items)}).catch(()=>null);showToast('✅ 已通知！');orders={};selPrefs={};renderMenu();}
 function renderAdmin(){const l=document.getElementById('dishListAdmin');if(!dishes.length){l.innerHTML='<div class="empty"><span class="empty-icon">🍽️</span><p>还没有菜！</p></div>';return;}l.innerHTML=dishes.map(d=>{const th=d.img?'<img src="'+d.img+'" alt="'+d.name+'">':(d.emoji||'🍜');return '<div class="dai"><div class="da-thumb">'+th+'</div><div class="da-info"><div class="da-name">'+d.name+'</div><div class="da-prefs">'+(d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项')+'</div></div><button class="btn-del" onclick="deleteDish(\''+d.id+'\')">\ud83d\uddd1\ufe0f</button></div>';}).join('');}
 function buildEmojiRow(sel){document.getElementById('emojiRow').innerHTML=EMOJIS.map(e=>'<span class="eopt'+(e===sel?' sel':'')+'" onclick="selectEmoji(this)">'+e+'</span>').join('');}
