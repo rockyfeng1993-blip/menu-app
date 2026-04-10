@@ -210,12 +210,12 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 async function loadFromCloud(){
   const _cd=JSON.parse(localStorage.getItem('cached_dishes')||'[]');
   const _co=JSON.parse(localStorage.getItem('cached_orders')||'[]');
-  if(_cd.length>0){dishes=_cd;orders=_co;window._cloudLoaded=true;setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}
+  if(_cd.length>0){dishes=_cd;orders=Array.isArray(_co)?_co:[];window._cloudLoaded=true;setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}
   else{setSyncStatus('loading','同步菜单中…');}
   try{
     const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});
     const data=await res.json();
-    dishes=data.record.dishes||[];orders=data.record.orders||[];
+    dishes=data.record.dishes||[];const _ro=data.record.orders;orders=Array.isArray(_ro)?_ro:((_ro&&typeof _ro==='object'&&Object.keys(_ro).length===0)?[]:[]);
     localStorage.setItem('cached_dishes',JSON.stringify(dishes));
     localStorage.setItem('cached_orders',JSON.stringify(orders));
     window._cloudLoaded=true;
@@ -377,7 +377,7 @@ async function submitOrder(){
   }).filter(Boolean);
   if(overallNote)lines.push('\n备注：'+overallNote);
   const msgBody='🍽️ 点菜单\n'+timeStr+'\n\n'+lines.join('\n');
-  orders.unshift({time:now.toISOString(),items:items.map(([id,v])=>{const d=dishes.find(x=>x.id===id);return{name:d?d.name:id,qty:v.qty,prefs:v.prefs,note:v.note};}),note:overallNote});
+  if(!Array.isArray(orders))orders=[];orders.unshift({time:now.toISOString(),items:items.map(([id,v])=>{const d=dishes.find(x=>x.id===id);return{name:d?d.name:id,qty:v.qty,prefs:v.prefs,note:v.note};}),note:overallNote});
   orders=orders.slice(0,50);
   saveToCloud();
   closeConfirmModal();
@@ -407,7 +407,7 @@ function renderAdmin(){
 }
 function renderOrders(){
   const list=document.getElementById('ordersList');
-  if(!orders.length){list.innerHTML='<div class="empty-state" style="padding:30px"><span class="empty-emoji" style="font-size:36px">📋</span><p>还没有点菜记录</p></div>';return;}
+  if(!Array.isArray(orders)||!orders.length){list.innerHTML='<div class="empty-state" style="padding:30px"><span class="empty-emoji" style="font-size:36px">📋</span><p>还没有点菜记录</p></div>';return;}
   list.innerHTML=orders.map(o=>{
     const t=new Date(o.time).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
     const itemLines=o.items.map(i=>{let s=i.name+' ×'+i.qty;if(i.prefs&&i.prefs.length)s+='（'+i.prefs.join('、')+'）';if(i.note)s+=' · '+i.note;return s;}).join('<br>');
