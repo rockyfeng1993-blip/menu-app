@@ -11,7 +11,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 20px rgba(255,107,157,.12)}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 8px 8px;border:none;background:none;cursor:pointer;color:var(--text-soft);font-size:11px;font-family:inherit;gap:4px}
 .nav-btn .nav-icon{font-size:22px}.nav-btn.active{color:var(--pink)}.nav-btn.active .nav-icon{transform:scale(1.15)}
-.page{display:none;padding:0 0 140px;min-height:100vh}.page.active{display:block}
+.page{display:none;padding:0 0 160px;min-height:100vh}.page.active{display:block}
 .page-hero{background:linear-gradient(135deg,#FF6B9D 0%,#FF9BBD 50%,#FFB3D1 100%);padding:40px 20px 28px;text-align:center;position:relative;overflow:hidden}
 .page-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,.12);border-radius:50%}
 .hero-emoji{font-size:44px;display:block;margin-bottom:8px}.hero-title{font-size:26px;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.1)}.hero-sub{font-size:13px;color:rgba(255,255,255,.85);margin-top:6px}
@@ -43,7 +43,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .modal-actions{display:flex;gap:10px;padding:20px}
 .btn{flex:1;padding:14px;border-radius:100px;border:none;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
 .btn-outline{background:var(--pink-light);color:var(--pink-dark)}.btn-primary{background:var(--pink);color:#fff;box-shadow:0 4px 16px rgba(255,107,157,.4)}
-.cart-bar{position:fixed;bottom:70px;left:16px;right:16px;background:var(--text);color:#fff;border-radius:18px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;z-index:190;box-shadow:0 8px 30px rgba(45,21,32,.35);transition:transform .3s cubic-bezier(.2,.8,.3,1),opacity .3s}
+.cart-bar{position:fixed;bottom:80px;left:16px;right:16px;background:var(--text);color:#fff;border-radius:18px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;z-index:190;box-shadow:0 8px 30px rgba(45,21,32,.35);transition:transform .3s cubic-bezier(.2,.8,.3,1),opacity .3s}
 .cart-bar.hidden{transform:translateY(120%);opacity:0;pointer-events:none}
 .cart-left{display:flex;align-items:center;gap:10px}.cart-badge{background:var(--pink);color:#fff;border-radius:50%;width:26px;height:26px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .cart-label{font-size:14px;font-weight:600}.cart-items-preview{font-size:12px;opacity:.65;margin-top:2px}
