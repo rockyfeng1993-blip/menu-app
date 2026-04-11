@@ -243,7 +243,14 @@ async function loadFromCloud(){
   }
 }
 async function saveToCloud(){
-  if(!window._cloudLoaded){showToast('菜单同步中，请稍等再操作…');return;}
+  if(!window._cloudLoaded){
+    let waited=0;
+    while(!window._cloudLoaded&&waited<5000){
+      await new Promise(r=>setTimeout(r,200));
+      waited+=200;
+    }
+    if(!window._cloudLoaded){showToast('同步超时，请稍后重试');return;}
+  }
   localStorage.setItem('cached_dishes',JSON.stringify(dishes));
   localStorage.setItem('cached_orders',JSON.stringify(orders));
   setSyncStatus('loading','保存中…');
@@ -252,6 +259,7 @@ async function saveToCloud(){
     setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');
   }catch(e){setSyncStatus('error','云端保存失败，已存本地');}
 }
+
 function showPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
