@@ -99,7 +99,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .qr-wrap { display:flex; justify-content:center; margin-bottom:14px; }
 .qr-wrap img { width:180px; height:180px; border-radius:12px; border:1.5px solid var(--border); }
 .btn-qr { background:var(--pink-light); color:var(--pink-dark); border:none; border-radius:12px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-/* v1775912258231 */
+/* v1775912946545 */
 </style>
 </head>
 <body>
@@ -226,8 +226,10 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 async function loadFromCloud(){
   const _cd=JSON.parse(localStorage.getItem('cached_dishes')||'[]');
   const _co=JSON.parse(localStorage.getItem('cached_orders')||'[]');
+  const _imgs=JSON.parse(localStorage.getItem('dish_imgs')||'{}');
+  function _mergeImgs(arr){return arr.map(d=>({...d,img:_imgs[d.id]||d.img||null}));}
   if(_cd.length>0){
-    dishes=_cd;
+    dishes=_mergeImgs(_cd);
     orders=Array.isArray(_co)?_co:[];
     window._cloudLoaded=true;
     setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
@@ -240,7 +242,7 @@ async function loadFromCloud(){
     const data=await res.json();
     const _rd=data.record.dishes||[];
     const _ro=data.record.orders;
-    dishes=_rd;
+    dishes=_mergeImgs(_rd);
     orders=Array.isArray(_ro)?_ro:[];
     localStorage.setItem('cached_dishes',JSON.stringify(dishes));
     localStorage.setItem('cached_orders',JSON.stringify(orders));
@@ -248,20 +250,20 @@ async function loadFromCloud(){
     setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
     renderMenu();
   }catch(e){
-    if(!window._cloudLoaded){
-      dishes=_cd; orders=Array.isArray(_co)?_co:[];
-      renderMenu();
-    }
     window._cloudLoaded=true;
+    if(!_cd.length){dishes=[];renderMenu();}
     setSyncStatus('error','离线模式');
   }
 }
 async function saveToCloud(){
+  const _imgs={};
+  const _slim=dishes.map(d=>{if(d.img){_imgs[d.id]=d.img;}return{id:d.id,name:d.name,emoji:d.emoji,prefs:d.prefs};});
   localStorage.setItem('cached_dishes',JSON.stringify(dishes));
   localStorage.setItem('cached_orders',JSON.stringify(orders));
+  localStorage.setItem('dish_imgs',JSON.stringify(_imgs));
   setSyncStatus('loading','保存中…');
   try{
-    await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes,orders})});
+    await fetch(BIN_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify({dishes:_slim,orders})});
     setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');
   }catch(e){setSyncStatus('error','云端保存失败，已存本地');}
 }
