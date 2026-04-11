@@ -225,31 +225,44 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 async function loadFromCloud(){
   const _cd=JSON.parse(localStorage.getItem('cached_dishes')||'[]');
   const _co=JSON.parse(localStorage.getItem('cached_orders')||'[]');
-  if(_cd.length>0){dishes=_cd;orders=Array.isArray(_co)?_co:[];window._cloudLoaded=true;setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');renderMenu();}
-  else{setSyncStatus('loading','同步菜单中…');}
+  if(_cd.length>0){
+    dishes=_cd;
+    orders=Array.isArray(_co)?_co:[];
+    window._cloudLoaded=true;
+    setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
+    renderMenu();
+  } else {
+    setSyncStatus('loading','同步菜单中…');
+  }
   try{
     const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});
     const data=await res.json();
-    dishes=data.record.dishes||[];const _ro=data.record.orders;orders=Array.isArray(_ro)?_ro:((_ro&&typeof _ro==='object'&&Object.keys(_ro).length===0)?[]:[]);
+    const _rd=data.record.dishes||[];
+    const _ro=data.record.orders;
+    dishes=_rd;
+    orders=Array.isArray(_ro)?_ro:[];
     localStorage.setItem('cached_dishes',JSON.stringify(dishes));
     localStorage.setItem('cached_orders',JSON.stringify(orders));
     window._cloudLoaded=true;
     setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
     renderMenu();
   }catch(e){
-    if(_cd.length===0){dishes=JSON.parse(localStorage.getItem('cached_dishes')||'[]');orders=JSON.parse(localStorage.getItem('cached_orders')||'[]');renderMenu();}
+    if(!window._cloudLoaded){
+      dishes=_cd; orders=Array.isArray(_co)?_co:[];
+      renderMenu();
+    }
     window._cloudLoaded=true;
     setSyncStatus('error','离线模式');
   }
 }
 async function saveToCloud(){
   if(!window._cloudLoaded){
-    let waited=0;
-    while(!window._cloudLoaded&&waited<5000){
-      await new Promise(r=>setTimeout(r,200));
-      waited+=200;
-    }
-    if(!window._cloudLoaded){showToast('同步超时，请稍后重试');return;}
+    await new Promise(resolve=>{
+      const check=setInterval(()=>{
+        if(window._cloudLoaded){clearInterval(check);resolve();}
+      },100);
+      setTimeout(()=>{clearInterval(check);resolve();},6000);
+    });
   }
   localStorage.setItem('cached_dishes',JSON.stringify(dishes));
   localStorage.setItem('cached_orders',JSON.stringify(orders));
