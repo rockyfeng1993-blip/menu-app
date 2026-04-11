@@ -257,12 +257,8 @@ async function loadFromCloud(){
 }
 async function saveToCloud(){
   if(!window._cloudLoaded){
-    await new Promise(resolve=>{
-      const check=setInterval(()=>{
-        if(window._cloudLoaded){clearInterval(check);resolve();}
-      },100);
-      setTimeout(()=>{clearInterval(check);resolve();},6000);
-    });
+    showToast('菜单同步中，请稍候再操作…');
+    return;
   }
   localStorage.setItem('cached_dishes',JSON.stringify(dishes));
   localStorage.setItem('cached_orders',JSON.stringify(orders));
