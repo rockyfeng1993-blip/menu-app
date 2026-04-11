@@ -99,7 +99,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .qr-wrap { display:flex; justify-content:center; margin-bottom:14px; }
 .qr-wrap img { width:180px; height:180px; border-radius:12px; border:1.5px solid var(--border); }
 .btn-qr { background:var(--pink-light); color:var(--pink-dark); border:none; border-radius:12px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-/* v1775911645336 */
+/* v1775912174176 */
 </style>
 </head>
 <body>
@@ -238,9 +238,8 @@ async function loadFromCloud(){
   try{
     const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});
     const data=await res.json();
-    const _rd=data.record.dishes||[];
+    dishes=data.record.dishes||[];
     const _ro=data.record.orders;
-    dishes=_rd;
     orders=Array.isArray(_ro)?_ro:[];
     localStorage.setItem('cached_dishes',JSON.stringify(dishes));
     localStorage.setItem('cached_orders',JSON.stringify(orders));
@@ -248,18 +247,16 @@ async function loadFromCloud(){
     setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
     renderMenu();
   }catch(e){
-    if(!window._cloudLoaded){
-      dishes=_cd; orders=Array.isArray(_co)?_co:[];
-      renderMenu();
-    }
     window._cloudLoaded=true;
+    if(!_cd.length){dishes=[];renderMenu();}
     setSyncStatus('error','离线模式');
   }
 }
 async function saveToCloud(){
-  if(!window._cloudLoaded){
-    showToast('菜单同步中，请稍候再操作…');
-    return;
+  const _cached=JSON.parse(localStorage.getItem('cached_dishes')||'[]');
+  if(dishes.length<_cached.length){
+    const _existing=new Set(dishes.map(d=>d.id));
+    _cached.forEach(d=>{if(!_existing.has(d.id))dishes.push(d);});
   }
   localStorage.setItem('cached_dishes',JSON.stringify(dishes));
   localStorage.setItem('cached_orders',JSON.stringify(orders));
