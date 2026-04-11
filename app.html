@@ -527,7 +527,7 @@ async function dragDrop(e,targetId){e.preventDefault();if(!_dragId||_dragId===ta
 function dragEnd(){_dragId=null;document.querySelectorAll('.dish-admin-item').forEach(el=>el.classList.remove('dragging','drag-over'));}
 
 function initQR(){
-  const url=encodeURIComponent('https://rockyfeng1993-blip.github.io/menu-app/');
+  const url=encodeURIComponent('https://rockyfeng1993-blip.github.io/menu-app/app.html');
   const qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+url+'&bgcolor=FFF8F0&color=2D1520&margin=10';
   document.getElementById('qrImg').src=qrUrl;
 }
