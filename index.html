@@ -99,7 +99,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .qr-wrap { display:flex; justify-content:center; margin-bottom:14px; }
 .qr-wrap img { width:180px; height:180px; border-radius:12px; border:1.5px solid var(--border); }
 .btn-qr { background:var(--pink-light); color:var(--pink-dark); border:none; border-radius:12px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-/* v1775928785133 */
+/* v1775929032753 */
 </style>
 </head>
 <body>
@@ -228,16 +228,20 @@ async function loadFromCloud(){
   const _cd=JSON.parse(localStorage.getItem('cached_dishes')||'[]');
   const _co=JSON.parse(localStorage.getItem('cached_orders')||'[]');
   if(_cd.length>0){
-    dishes=_cd;orders=Array.isArray(_co)?_co:[];
+    dishes=_cd;
+    orders=Array.isArray(_co)?_co:[];
     window._cloudLoaded=true;
     setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
     renderMenu();
-  }else{setSyncStatus('loading','同步菜单中…');}
+  } else {
+    setSyncStatus('loading','同步菜单中…');
+  }
   try{
     const res=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':MASTER_KEY}});
     const data=await res.json();
-    dishes=data.record.dishes||[];
+    const _rd=data.record.dishes||[];
     const _ro=data.record.orders;
+    dishes=_rd;
     orders=Array.isArray(_ro)?_ro:[];
     localStorage.setItem('cached_dishes',JSON.stringify(dishes));
     localStorage.setItem('cached_orders',JSON.stringify(orders));
@@ -245,8 +249,11 @@ async function loadFromCloud(){
     setSyncStatus('ok','菜单已同步 · '+dishes.length+' 道菜');
     renderMenu();
   }catch(e){
+    if(!window._cloudLoaded){
+      dishes=_cd; orders=Array.isArray(_co)?_co:[];
+      renderMenu();
+    }
     window._cloudLoaded=true;
-    if(!_cd.length){dishes=[];renderMenu();}
     setSyncStatus('error','离线模式');
   }
 }
@@ -259,7 +266,11 @@ async function saveToCloud(){
     setSyncStatus('ok','已保存 · '+dishes.length+' 道菜');
   }catch(e){setSyncStatus('error','云端保存失败，已存本地');}
 }
-tElementById('page-'+p).classList.add('active');
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
   if(p==='admin'){renderAdmin();renderOrders();loadSendKeyUI();initQR();}
   if(p==='menu'){renderMenu();}
@@ -278,29 +289,189 @@ function handleImgUpload(input){
   reader.onload=async e=>{
     const b64=e.target.result.split(',')[1];
     try{
-      const fd=new FormData();
-      fd.append('image',b64);
+      const fd=new FormData();fd.append('image',b64);
       const res=await fetch('https://api.imgbb.com/1/upload?key='+IMGBB_KEY,{method:'POST',body:fd});
       const json=await res.json();
       if(json.success){
         pendingImg=json.data.url;
-        const prev=document.getElementById('imgPreview');
-        prev.src=pendingImg;prev.style.display='block';
+        document.getElementById('imgPreview').src=pendingImg;
+        document.getElementById('imgPreview').style.display='block';
         document.getElementById('uploadLabel').textContent='已上传图片';
         document.querySelectorAll('#emojiRow .emoji-opt').forEach(o=>o.classList.remove('selected'));
         showToast('✅ 图片上传成功');
-      }else{
-        showToast('图片上传失败，请重试');
-        console.error('imgbb fail',json);
-      }
-    }catch(err){
-      showToast('网络错误，图片上传失败');
-      console.error('imgbb error',err);
-    }
+      }else{showToast('图片上传失败，请重试');console.error(json);}
+    }catch(err){showToast('网络错误，图片上传失败');console.error(err);}
   };
   reader.readAsDataURL(input.files[0]);
 }
-
+function addPref(){const inp=document.getElementById('prefInput'),val=inp.value.trim();if(!val||buildPrefs.includes(val)){inp.value='';return;}buildPrefs.push(val);renderBuildPrefs();inp.value='';}
+function quickAddPref(p){if(!buildPrefs.includes(p)){buildPrefs.push(p);renderBuildPrefs();}}
+function removeBuildPref(i){buildPrefs.splice(i,1);renderBuildPrefs();}
+function renderBuildPrefs(){document.getElementById('prefsList').innerHTML=buildPrefs.map((p,i)=>'<span class="pref-tag">'+p+'<span class="pref-tag-del" onclick="removeBuildPref('+i+')">×</span></span>').join('');}
+async function addDish(){
+  const name=document.getElementById('dishName').value.trim();
+  if(!name){showToast('请填写菜品名称');return;}
+  dishes.push({id:'d_'+Date.now(),name,emoji:getSelectedEmoji(),img:pendingImg,prefs:[...buildPrefs]});
+  await saveToCloud();
+  document.getElementById('dishName').value='';
+  document.getElementById('imgPreview').style.display='none';
+  document.getElementById('uploadLabel').textContent='或上传图片';
+  document.getElementById('imgFileInput').value='';
+  buildPrefs=[];renderBuildPrefs();pendingImg=null;buildEmojiRow();
+  renderAdmin();showToast('✅ 已添加并同步到云端！');
+}
+async function deleteDish(id){
+  dishes=dishes.filter(d=>d.id!==id);delete cart[id];
+  await saveToCloud();renderAdmin();renderMenu();updateCartBar();showToast('已删除');
+}
+function renderMenu(){
+  const grid=document.getElementById('menuGrid');
+  if(!dishes.length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><span class="empty-emoji">🍳</span><p>菜单还是空的哦<br>等他去后台加菜吧～</p></div>';
+    return;
+  }
+  grid.innerHTML=dishes.map(d=>{
+    const c=cart[d.id],qty=c?c.qty:0;
+    const imgHtml=d.img?'<img class="dish-img" src="'+d.img+'" alt="'+d.name+'">':
+      '<div class="dish-emoji-placeholder">'+(d.emoji||'🍜')+'</div>';
+    return '<div class="dish-card'+(qty>0?' selected':'')+'" id="card-'+d.id+'">'
+      +(qty>0?'<div class="badge-selected">'+qty+'</div>':'')
+      +'<div onclick="openPrefsModal(\''+d.id+'\')" style="cursor:pointer">'+imgHtml
+      +'<div class="dish-info"><div class="dish-name">'+d.name+'</div>'
+      +(d.prefs&&d.prefs.length?'<div class="dish-prefs">'+d.prefs.join(' · ')+'</div>':'')
+      +'</div></div>'
+      +'<div class="dish-info" style="padding-top:0"><div class="dish-qty-row">'
+      +'<button class="qty-btn qty-minus" onclick="changeQty(\''+d.id+'\',-1)"'+(qty===0?' style="opacity:.4"':'')+'>\u2212</button>'
+      +'<span class="qty-num">'+qty+'</span>'
+      +'<button class="qty-btn qty-plus" onclick="changeQty(\''+d.id+'\',1)">+</button>'
+      +'</div></div></div>';
+  }).join('');
+}
+function changeQty(id,delta){
+  const c=cart[id]||{qty:0,prefs:[],note:''};
+  const newQty=Math.max(0,c.qty+delta);
+  if(newQty===0){delete cart[id];}
+  else{cart[id]={...c,qty:newQty};if(delta>0&&!c.qty)openPrefsModal(id);}
+  renderMenu();updateCartBar();
+}
+function openPrefsModal(id){
+  const d=dishes.find(x=>x.id===id);if(!d)return;
+  currentDishId=id;
+  const c=cart[id]||{qty:0,prefs:[],note:''};
+  currentPrefs=[...(c.prefs||[])];
+  document.getElementById('modalDishName').textContent=d.name;
+  const sec=document.getElementById('modalPrefsSection');
+  if(d.prefs&&d.prefs.length){
+    sec.style.display='block';
+    document.getElementById('modalPrefChips').innerHTML=d.prefs.map(p=>
+      '<button class="pref-chip'+(currentPrefs.includes(p)?' selected':'')+'" onclick="togglePref(this,\''+p+'\')">'+p+'</button>'
+    ).join('');
+  }else{sec.style.display='none';}
+  document.getElementById('modalNote').value=c.note||'';
+  document.getElementById('prefsOverlay').classList.add('show');
+}
+function togglePref(el,p){el.classList.toggle('selected');if(currentPrefs.includes(p))currentPrefs=currentPrefs.filter(x=>x!==p);else currentPrefs.push(p);}
+function confirmDishPref(){
+  const note=document.getElementById('modalNote').value.trim();
+  const c=cart[currentDishId]||{qty:0};
+  cart[currentDishId]={qty:Math.max(1,c.qty),prefs:currentPrefs,note};
+  closePrefsModal();renderMenu();updateCartBar();
+}
+function closePrefsModal(){document.getElementById('prefsOverlay').classList.remove('show');}
+function closePrefsIfOut(e){if(e.target===e.currentTarget)closePrefsModal();}
+function updateCartBar(){
+  const bar=document.getElementById('cartBar'),badge=document.getElementById('cartBadge'),prev=document.getElementById('cartPreview');
+  const items=Object.entries(cart).filter(([,v])=>v.qty>0);
+  if(!items.length){bar.classList.add('hidden');return;}
+  bar.classList.remove('hidden');
+  badge.textContent=items.reduce((s,[,v])=>s+v.qty,0);
+  prev.textContent=items.map(([id,v])=>{const d=dishes.find(x=>x.id===id);return d?d.name+'×'+v.qty:'';}).filter(Boolean).slice(0,2).join('、');
+}
+function openConfirm(){
+  const items=Object.entries(cart).filter(([,v])=>v.qty>0);if(!items.length)return;
+  document.getElementById('confirmList').innerHTML=items.map(([id,v])=>{
+    const d=dishes.find(x=>x.id===id);if(!d)return'';
+    const detail=[v.prefs&&v.prefs.length?v.prefs.join('、'):'',v.note?'备注：'+v.note:''].filter(Boolean).join('；');
+    return '<div class="confirm-item"><div><div class="confirm-name">'+d.name+'</div>'+(detail?'<div class="confirm-detail">'+detail+'</div>':'')+'</div><div class="confirm-qty">×'+v.qty+'</div></div>';
+  }).join('');
+  document.getElementById('overallNote').value='';
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirmModal(){document.getElementById('confirmOverlay').classList.remove('show');}
+function closeConfirmIfOut(e){if(e.target===e.currentTarget)closeConfirmModal();}
+async function submitOrder(){
+  const items=Object.entries(cart).filter(([,v])=>v.qty>0);if(!items.length)return;
+  const overallNote=document.getElementById('overallNote').value.trim();
+  const now=new Date();
+  const timeStr=now.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const lines=items.map(([id,v])=>{
+    const d=dishes.find(x=>x.id===id);if(!d)return'';
+    let s='• '+d.name+' ×'+v.qty;
+    if(v.prefs&&v.prefs.length)s+='（'+v.prefs.join('、')+'）';
+    if(v.note)s+=' 备注：'+v.note;
+    return s;
+  }).filter(Boolean);
+  if(overallNote)lines.push('\n备注：'+overallNote);
+  const msgBody='🍽️ 点菜单\n'+timeStr+'\n\n'+lines.join('\n');
+  if(!Array.isArray(orders))orders=[];orders.unshift({time:now.toISOString(),items:items.map(([id,v])=>{const d=dishes.find(x=>x.id===id);return{name:d?d.name:id,qty:v.qty,prefs:v.prefs,note:v.note};}),note:overallNote});
+  orders=orders.slice(0,50);
+  saveToCloud();
+  closeConfirmModal();
+  const sendKey=getSK();
+  if(!sendKey){showToast('点菜已记录！（未配置推送）');cart={};renderMenu();updateCartBar();return;}
+  document.getElementById('sendingOverlay').classList.add('show');
+  try{
+    await fetch('https://sctapi.ftqq.com/'+sendKey+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=🍽️+Kelly点菜啦！&desp='+encodeURIComponent(msgBody)});
+  }catch(e){}
+  document.getElementById('sendingOverlay').classList.remove('show');
+  document.getElementById('successOverlay').classList.add('show');
+  cart={};renderMenu();updateCartBar();
+}
+function renderAdmin(){
+  const list=document.getElementById('dishListAdmin');
+  if(!dishes.length){list.innerHTML='<div class="empty-state"><span class="empty-emoji">🍽️</span><p>还没有菜，快去加吧！</p></div>';return;}
+  list.innerHTML=dishes.map(d=>{
+    const thumb=d.img?'<img src="'+d.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">':(d.emoji||'🍜');
+    return '<div class="dish-admin-item" id="ai-'+d.id+'" draggable="true" ondragstart="dragStart(event,\''+d.id+'\')" ondragover="dragOver(event,\''+d.id+'\')" ondrop="dragDrop(event,\''+d.id+'\')" ondragend="dragEnd()">'
+      +'<span class="drag-handle">☰</span>'
+      +'<div class="dish-admin-thumb">'+thumb+'</div>'
+      +'<div class="dish-admin-info"><div class="dish-admin-name">'+d.name+'</div>'
+      +'<div class="dish-admin-prefs">'+(d.prefs&&d.prefs.length?d.prefs.join(' · '):'无偏好选项')+'</div></div>'
+      +'<button class="btn-edit" onclick="openEditModal(\''+d.id+'\')">✏️</button>'
+      +'<button class="btn-del" onclick="deleteDish(\''+d.id+'\')">🗑️</button></div>';
+  }).join('');
+}
+function renderOrders(){
+  const list=document.getElementById('ordersList');
+  if(!Array.isArray(orders)||!orders.length){list.innerHTML='<div class="empty-state" style="padding:30px"><span class="empty-emoji" style="font-size:36px">📋</span><p>还没有点菜记录</p></div>';return;}
+  list.innerHTML=orders.map(o=>{
+    const t=new Date(o.time).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const itemLines=o.items.map(i=>{let s=i.name+' ×'+i.qty;if(i.prefs&&i.prefs.length)s+='（'+i.prefs.join('、')+'）';if(i.note)s+=' · '+i.note;return s;}).join('<br>');
+    return '<div class="order-card"><div class="order-time">'+t+'</div><div class="order-items">'+itemLines+'</div>'+(o.note?'<div class="order-note-display">备注：'+o.note+'</div>':'')+'</div>';
+  }).join('');
+}
+function loadSendKeyUI(){const k=getSK();document.getElementById('sendkeyInput').value=k;if(k)document.getElementById('sendkeyStatus').textContent='✅ 已配置';}
+function saveSendKey(){const k=document.getElementById('sendkeyInput').value.trim();localStorage.setItem(K_SK,k);document.getElementById('sendkeyStatus').textContent=k?'✅ 已保存':'已清除';}
+async function testPush(){
+  const k=getSK();if(!k){showToast('请先保存 SendKey');return;}
+  document.getElementById('sendkeyStatus').textContent='发送中…';
+  try{await fetch('https://sctapi.ftqq.com/'+k+'.send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'title=🔔+点菜系统测试&desp=推送成功！Kelly点菜你就能收到啦 🎉'});
+    document.getElementById('sendkeyStatus').textContent='✅ 已发送，检查你的微信';
+  }catch(e){document.getElementById('sendkeyStatus').textContent='❌ 发送失败';}
+}
+function buildEditEmojiRow(sel){
+  document.getElementById('editEmojiRow').innerHTML=EMOJIS.map(e=>'<span class="emoji-opt'+(e===sel?' selected':'')+'" onclick="selectEditEmoji(this)">'+e+'</span>').join('');
+}
+function selectEditEmoji(el){document.querySelectorAll('#editEmojiRow .emoji-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');}
+function getEditEmoji(){return document.querySelector('#editEmojiRow .emoji-opt.selected')?.textContent||'🍜';}
+function clearEditImg(){
+  _editPendingImg=null;
+  document.getElementById('editImgPreview').style.display='none';
+  document.getElementById('editUploadLabel').textContent='或上传图片';
+  document.getElementById('editImgInput').value='';
+  const d=dishes.find(x=>x.id===_editId);
+  buildEditEmojiRow(d?.emoji||'🍜');
+}
 function handleEditImgUpload(input){
   if(!input.files[0])return;
   showToast('图片上传中…');
@@ -308,27 +479,21 @@ function handleEditImgUpload(input){
   reader.onload=async e=>{
     const b64=e.target.result.split(',')[1];
     try{
-      const fd=new FormData();
-      fd.append('image',b64);
+      const fd=new FormData();fd.append('image',b64);
       const res=await fetch('https://api.imgbb.com/1/upload?key='+IMGBB_KEY,{method:'POST',body:fd});
       const json=await res.json();
       if(json.success){
         _editPendingImg=json.data.url;
-        const prev=document.getElementById('editImgPreview');
-        prev.src=_editPendingImg;prev.style.display='block';
+        document.getElementById('editImgPreview').src=_editPendingImg;
+        document.getElementById('editImgPreview').style.display='block';
         document.getElementById('editUploadLabel').textContent='已上传图片';
         document.querySelectorAll('#editEmojiRow .emoji-opt').forEach(o=>o.classList.remove('selected'));
         showToast('✅ 图片上传成功');
-      }else{
-        showToast('图片上传失败，请重试');
-      }
-    }catch(err){
-      showToast('网络错误，图片上传失败');
-    }
+      }else{showToast('图片上传失败，请重试');}
+    }catch(err){showToast('网络错误，图片上传失败');}
   };
   reader.readAsDataURL(input.files[0]);
 }
-
 function addEditPref(){const inp=document.getElementById('editPrefInput'),val=inp.value.trim();if(!val||_editPrefs.includes(val)){inp.value='';return;}_editPrefs.push(val);renderEditPrefs();inp.value='';}
 function quickAddEditPref(p){if(!_editPrefs.includes(p)){_editPrefs.push(p);renderEditPrefs();}}
 function removeEditPref(i){_editPrefs.splice(i,1);renderEditPrefs();}
