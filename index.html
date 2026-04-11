@@ -243,7 +243,7 @@ function showPage(p){
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
   if(p==='admin'){renderAdmin();renderOrders();loadSendKeyUI();}
-  if(p==='menu'){loadFromCloud();}
+  if(p==='menu'){renderMenu();}
 }
 function buildEmojiRow(){
   document.getElementById('emojiRow').innerHTML=EMOJIS.map((e,i)=>
