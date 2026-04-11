@@ -92,6 +92,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .link-text{color:var(--pink);text-decoration:underline}
 /* v1775878035147 */
+
+.qr-card { margin:16px 16px 0; background:var(--card); border-radius:var(--r); padding:16px; border:1.5px solid var(--border); box-shadow:var(--shadow-sm); text-align:center; }
+.qr-title { font-size:14px; font-weight:700; margin-bottom:4px; }
+.qr-desc { font-size:12px; color:var(--text-soft); margin-bottom:14px; line-height:1.5; }
+.qr-wrap { display:flex; justify-content:center; margin-bottom:14px; }
+.qr-wrap img { width:180px; height:180px; border-radius:12px; border:1.5px solid var(--border); }
+.btn-qr { background:var(--pink-light); color:var(--pink-dark); border:none; border-radius:12px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
 </style>
 </head>
 <body>
@@ -104,6 +111,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 
 <div class="page" id="page-admin">
   <div class="admin-hero"><span class="hero-emoji" style="font-size:40px">👨‍🍳</span><div class="hero-title">后台管理</div><div class="hero-sub">只有你能看到这里</div></div>
+
+  <div class="qr-card">
+    <div class="qr-title">📱 扫码点菜</div>
+    <div class="qr-desc">Kelly 扫下面的二维码，直接进入点菜界面</div>
+    <div class="qr-wrap"><img id="qrImg" src="" alt="QR Code" /></div>
+    <button class="btn-qr" onclick="downloadQR()">⬇️ 保存二维码图片</button>
+  </div>
   <div class="config-card">
     <div class="config-title">📲 微信推送（Server酱）</div>
     <div class="config-desc">去 <a href="https://sct.ftqq.com" target="_blank" class="link-text">sct.ftqq.com</a> 微信扫码登录，复制 SendKey。</div>
@@ -243,7 +257,7 @@ function showPage(p){
   document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav'+p[0].toUpperCase()+p.slice(1)).classList.add('active');
-  if(p==='admin'){renderAdmin();renderOrders();loadSendKeyUI();}
+  if(p==='admin'){renderAdmin();renderOrders();loadSendKeyUI();initQR();}
   if(p==='menu'){renderMenu();}
 }
 function buildEmojiRow(){
@@ -484,6 +498,19 @@ function dragStart(e,id){_dragId=id;e.dataTransfer.effectAllowed='move';setTimeo
 function dragOver(e,id){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.dish-admin-item').forEach(el=>el.classList.remove('drag-over'));if(id!==_dragId)document.getElementById('ai-'+id)?.classList.add('drag-over');}
 async function dragDrop(e,targetId){e.preventDefault();if(!_dragId||_dragId===targetId)return;const fi=dishes.findIndex(d=>d.id===_dragId),ti=dishes.findIndex(d=>d.id===targetId);if(fi===-1||ti===-1)return;const [moved]=dishes.splice(fi,1);dishes.splice(ti,0,moved);renderAdmin();await saveToCloud();showToast('顺序已保存 ✅');}
 function dragEnd(){_dragId=null;document.querySelectorAll('.dish-admin-item').forEach(el=>el.classList.remove('dragging','drag-over'));}
+
+function initQR(){
+  const url=encodeURIComponent('https://rockyfeng1993-blip.github.io/menu-app/');
+  const qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+url+'&bgcolor=FFF8F0&color=2D1520&margin=10';
+  document.getElementById('qrImg').src=qrUrl;
+}
+function downloadQR(){
+  const a=document.createElement('a');
+  a.href=document.getElementById('qrImg').src;
+  a.download='今天吃什么-点菜二维码.png';
+  a.target='_blank';
+  a.click();
+}
 buildEmojiRow();
 loadFromCloud();
 </script>
